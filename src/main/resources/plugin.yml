@@ -3,3 +3,4 @@ version: '${project.version}'
 main: dev.jensderuiter.websk.Main
 depend: [ Skript ]
 description: Run a website using Skript
+author: jensjeflensje
