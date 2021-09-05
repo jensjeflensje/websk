@@ -1,5 +1,5 @@
 language: java
-jdk: oraclejdk8
+jdk: oraclejdk16
 install: true
 script: ./mvn clean install
 cache:
