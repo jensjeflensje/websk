@@ -12,6 +12,6 @@ deploy:
   skip_cleanup: true
   on:
     tags: false
-anches:
+branches:
   only:
     - main
