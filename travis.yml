@@ -1,0 +1,14 @@
+language: java
+jdk: oraclejdk8
+install: true
+script: ./mvn clean install
+cache:
+  directories:
+    - $HOME/.m2
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file: "target/websk-1.0-SNAPSHOT.jar"
+  skip_cleanup: true
+  on:
+    tags: true
