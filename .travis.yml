@@ -11,7 +11,4 @@ deploy:
   file: "target/websk-1.0-SNAPSHOT.jar"
   skip_cleanup: true
   on:
-    tags: false
-branches:
-  only:
-    - main
+    tags: true
