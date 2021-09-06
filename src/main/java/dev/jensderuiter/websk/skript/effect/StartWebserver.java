@@ -14,7 +14,7 @@ import java.io.IOException;
 public class StartWebserver extends Effect {
 
     static {
-        Skript.registerEffect(StartWebserver.class, "start webserver on port %-integer%");
+        Skript.registerEffect(StartWebserver.class, "start webserver on port %integer%");
     }
 
     private Expression<Integer> port;
@@ -27,16 +27,19 @@ public class StartWebserver extends Effect {
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Start webserver effect with expression port: " + port.toString(event, debug);
+        return "start webserver on port " + port.toString(event, debug);
     }
 
     @Override
     protected void execute(Event event) {
         try {
+            try {
+                Main.webserver.shutdown();
+            } catch (Exception ignored) {}
             Main.webserver = new Webserver(port.getSingle(event));
             Main.webserver.start();
         } catch (IOException ignored) {
-            Skript.error("There is already something listening on this port.");
+            Skript.error("Error while starting the web server. Is something already listening on that port?");
         }
 
 

@@ -14,7 +14,7 @@ import java.util.*;
 public class SetSessionProperty extends Effect {
 
     static {
-        Skript.registerEffect(SetSessionProperty.class, "set session on %-request% to %string% is %-objects%");
+        Skript.registerEffect(SetSessionProperty.class, "set session on %request% to %string% is %string%");
     }
 
     private Expression<Request> request;
@@ -31,21 +31,19 @@ public class SetSessionProperty extends Effect {
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Set a cookie";
+        return "set session on request to " + this.key.toString(event, debug) + " is " + this.value.toString(event, debug);
     }
 
     private String generateSessionToken() {
-        int leftLimit = 97; // letter 'a'
-        int rightLimit = 122; // letter 'z'
+        int leftLimit = 'a'; // letter 'a'
+        int rightLimit = 'z'; // letter 'z'
         int targetStringLength = 32;
         Random random = new Random();
 
-        String generatedString = random.ints(leftLimit, rightLimit + 1)
+        return random.ints(leftLimit, rightLimit + 1)
                 .limit(targetStringLength)
                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                 .toString();
-
-        return generatedString;
     }
 
     @Override
@@ -59,8 +57,6 @@ public class SetSessionProperty extends Effect {
             valueObj = value.getAll(event);
         }
 
-        System.out.println(requestObj);
-
         String sessionToken = requestObj.cookies.get("session");
         if (sessionToken == null || RequestData.sessions.get(sessionToken) == null) {
             sessionToken = generateSessionToken();
@@ -68,10 +64,7 @@ public class SetSessionProperty extends Effect {
             futureCookies.add("session=" + sessionToken);
             RequestData.futureCookies.put(requestObj.id, futureCookies);
         }
-        Map<String, Object> sessionData = RequestData.sessions.get(sessionToken);
-        if (sessionData == null) {
-            sessionData = new HashMap<>();
-        }
+        Map<String, Object> sessionData = RequestData.sessions.computeIfAbsent(sessionToken, nothing -> new HashMap<>());
         sessionData.put(keyObj, valueObj);
         RequestData.sessions.put(sessionToken, sessionData);
 

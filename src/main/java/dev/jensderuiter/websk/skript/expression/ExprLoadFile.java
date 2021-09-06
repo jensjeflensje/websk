@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
 
 public class ExprLoadFile extends SimpleExpression<String> {
 
+    Pattern pattern = Pattern.compile("%[^%]*%");
+
 
     static {
         Skript.registerExpression(ExprLoadFile.class, String.class, ExpressionType.COMBINED, "[the] file %string%");
@@ -45,7 +47,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Expression to get query parameters";
+        return "file " + fileName.toString(event, debug);
     }
 
     public String replaceLast(String text, String regex, String replacement) {
@@ -54,7 +56,12 @@ public class ExprLoadFile extends SimpleExpression<String> {
 
     @Override
     protected String[] get(Event event) {
-        File file = new File("plugins/Skript/templates/", fileName.getSingle(event));
+        String fileNameObj = fileName.getSingle(event);
+        if (fileNameObj == null) {
+            Skript.error("Template file does not exist: " + fileNameObj);
+            return new String[]{""};
+        }
+        File file = new File("plugins/Skript/templates/", fileNameObj);
         if (file.exists()) {
             Scanner myReader = null;
             String fileContents = "";
@@ -71,7 +78,6 @@ public class ExprLoadFile extends SimpleExpression<String> {
                 myReader.close();
             }
 
-            Pattern pattern = Pattern.compile("%[^%]*%");
             Matcher matcher = pattern.matcher(fileContents);
 
             while (matcher.find()) {
@@ -86,9 +92,9 @@ public class ExprLoadFile extends SimpleExpression<String> {
                     }
                     String forLoopContent = fileContents.substring(matcher.end());
                     forLoopContent = forLoopContent.split("%endfor%")[0];
-                    String forLoopContents = "";
+                    StringBuilder forLoopContents = new StringBuilder();
                     for (Map.Entry<String, Object> loopElem : forLoopVarObj.entrySet()) {
-                        forLoopContents = forLoopContents + forLoopContent.replaceAll("%obj%", loopElem.getValue().toString());
+                        forLoopContents.append(forLoopContent.replaceAll("%obj%", loopElem.getValue().toString()));
                     }
                     fileContents = replaceLast(fileContents.substring(0, matcher.end()), varName, "")
                             + forLoopContents
@@ -116,7 +122,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
 
             return new String[]{fileContents};
         }
-        Skript.error("Template file does not exist: " + fileName);
+        Skript.error("Template file does not exist: " + fileNameObj);
         return new String[]{""};
     }
 

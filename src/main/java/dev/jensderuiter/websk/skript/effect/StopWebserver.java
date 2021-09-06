@@ -21,7 +21,7 @@ public class StopWebserver extends Effect {
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Stop webserver";
+        return "stop webserver";
     }
 
     @Override

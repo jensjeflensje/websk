@@ -14,7 +14,7 @@ public class ExprLoadJson extends SimpleExpression<String> {
 
 
     static {
-        Skript.registerExpression(ExprLoadJson.class, String.class, ExpressionType.COMBINED, "[the] object %-objects% as json");
+        Skript.registerExpression(ExprLoadJson.class, String.class, ExpressionType.COMBINED, "[the] object %objects% as json");
     }
 
     private Expression<Object> subject;
@@ -39,7 +39,7 @@ public class ExprLoadJson extends SimpleExpression<String> {
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Expression to get query parameters";
+        return "object " + this.subject.toString(event, debug) + " as json";
     }
 
     @Override

@@ -12,7 +12,7 @@ import org.bukkit.event.Event;
 public class ExprRequestParam extends SimpleExpression<String> {
 
     static {
-        Skript.registerExpression(ExprRequestParam.class, String.class, ExpressionType.COMBINED, "[the] parameter %string% of %-request%");
+        Skript.registerExpression(ExprRequestParam.class, String.class, ExpressionType.COMBINED, "[the] parameter %string% of %request%");
     }
 
     private Expression<String> param;
@@ -38,7 +38,7 @@ public class ExprRequestParam extends SimpleExpression<String> {
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Expression to get query parameters";
+        return "parameter " + this.param.toString(event, debug) + " of request";
     }
 
     @Override
