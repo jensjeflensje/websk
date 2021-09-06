@@ -11,23 +11,23 @@ import org.bukkit.event.Event;
 public class AddWebserverPath extends Effect {
 
     static {
-        Skript.registerEffect(AddWebserverPath.class, "add webserver path %-string% to run <(.+)>\\([<.*?>]\\)");
+        Skript.registerEffect(AddWebserverPath.class, "add webserver path %string% to run <(.+)>\\([<.*?>]\\)");
     }
 
     private Expression<String> path;
-    private SkriptParser.ParseResult parseResult;
+    private String function;
 
     @Override
     public boolean init(Expression<?>[] expressions, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parser) {
         this.path = (Expression<String>) expressions[0];
 
-        parseResult = parser;
+        function = parser.regexes.get(0).group(0);
         return true;
     }
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Add webserver path: " + path.toString(event, debug);
+        return "Add webserver path " + path.toString(event, debug) + "to run " + function;
     }
 
     @Override
@@ -36,6 +36,6 @@ public class AddWebserverPath extends Effect {
             Skript.error("Webserver has not started.");
             return;
         }
-        Main.webserver.setStringContext(path.getSingle(event), parseResult, event);
+        Main.webserver.setStringContext(path.getSingle(event), function);
     }
 }

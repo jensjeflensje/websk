@@ -3,6 +3,7 @@ package dev.jensderuiter.websk.skript.type;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class Request {
 
@@ -11,8 +12,8 @@ public class Request {
     public Map<String, String> cookies = new HashMap<>();
     public String ip;
 
-    public Request(int id, String queryParams, String ip, String cookies) {
-        this.id = id;
+    public Request(String queryParams, String ip, String cookies) {
+        this.id = Objects.hash(cookies, queryParams, ip);;
         this.params = queryToMap(queryParams);
         this.ip = ip;
         for (String cookie : cookies.split(";")) {

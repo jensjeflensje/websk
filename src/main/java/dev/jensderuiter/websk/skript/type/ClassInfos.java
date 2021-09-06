@@ -18,7 +18,6 @@ public class ClassInfos {
                 .user("requests?")
                 .name("Request")
                 .description("Represents a web request.")
-                .defaultExpression(new EventValueExpression<>(Request.class))
                 .parser(new Parser<Request>() {
 
                     @Override
@@ -29,17 +28,17 @@ public class ClassInfos {
 
                     @Override
                     public boolean canParse(ParseContext context) {
-                        return true;
+                        return false;
                     }
 
                     @Override
                     public String toVariableNameString(Request request) {
-                        return "request";
+                        return String.valueOf(request.id);
                     }
 
                     @Override
                     public String getVariableNamePattern() {
-                        return "request:((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)(\\.(?!$)|$)){4}";
+                        return ".+";
                     }
 
                     @Override
@@ -51,7 +50,6 @@ public class ClassInfos {
                     @Override
                     public Fields serialize(Request request) throws NotSerializableException {
                         Fields fields = new Fields();
-                        fields.putPrimitive("ip", request.ip);
                         return fields;
                     }
 

@@ -15,7 +15,7 @@ import java.util.Map;
 public class ExprRequestSessionProperty extends SimpleExpression<String> {
 
     static {
-        Skript.registerExpression(ExprRequestSessionProperty.class, String.class, ExpressionType.COMBINED, "[the] session property %string% of %-request%");
+        Skript.registerExpression(ExprRequestSessionProperty.class, String.class, ExpressionType.COMBINED, "[the] session property %string% of %request%");
     }
 
     private Expression<String> property;
@@ -41,7 +41,7 @@ public class ExprRequestSessionProperty extends SimpleExpression<String> {
 
     @Override
     public String toString(Event event, boolean debug) {
-        return "Expression to get query parameters";
+        return "session property " + this.property.toString(event, debug) + " of request";
     }
 
     @Override

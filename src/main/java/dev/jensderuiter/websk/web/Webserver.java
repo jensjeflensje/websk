@@ -18,7 +18,7 @@ import java.util.Objects;
 
 public class Webserver extends Thread {
 
-    public HttpServer innerServer;
+    private HttpServer innerServer;
 
     public Webserver(int port) throws IOException {
         innerServer = HttpServer.create(new InetSocketAddress(port), 0);
@@ -33,7 +33,7 @@ public class Webserver extends Thread {
         innerServer.stop(0);
     }
 
-    public void setStringContext(String path, SkriptParser.ParseResult parser, Event event) {
+    public void setStringContext(String path, String function) {
         try {
             innerServer.removeContext(path);
         } catch (IllegalArgumentException ignored) {
@@ -41,42 +41,36 @@ public class Webserver extends Thread {
 
         innerServer.createContext(path, httpExchange -> {
             String cookies = "";
-            String queryParams;
-            String ip;
-            int id;
             if (httpExchange.getRequestHeaders().containsKey("Cookie")) {
                 List<String> cookieHeader = httpExchange.getRequestHeaders().get("Cookie");
                 if (cookieHeader.size() > 0) {
                     cookies = cookieHeader.get(0);
                 }
             }
-            queryParams = httpExchange.getRequestURI().getQuery();
-            ip = httpExchange.getRemoteAddress().getAddress().getHostAddress();
-            id = Objects.hash(cookies, queryParams, ip);
+            String queryParams = httpExchange.getRequestURI().getQuery();
+            String ip = httpExchange.getRemoteAddress().getAddress().getHostAddress();
             Request request = new Request(
-                    id,
                     queryParams,
                     ip,
                     cookies
             );
 
-            Function skriptFunction = Functions.getFunction(parser.regexes.get(0).group(0));
+            Function skriptFunction = Functions.getFunction(function);
             if (skriptFunction == null) {
                 Skript.error("The webserver wasn't given a valid function!");
                 return;
             }
 
             Object[] returned = skriptFunction.execute(new Object[][]{new Object[]{request}});
+            if (returned.length == 0) {
+                Skript.error("The webserver function didn't return a valid response. It should be a string.");
+                return;
+            }
             String responseString = (String) returned[0];
 
-            byte[] response;
-            if (responseString != null) {
-                response = responseString.getBytes(StandardCharsets.UTF_8);
-            } else {
-                response = "".getBytes(StandardCharsets.UTF_8);
-            }
+            byte[] response = (responseString != null ? responseString : "").getBytes(StandardCharsets.UTF_8);
             Headers respHeaders = httpExchange.getResponseHeaders();
-            List<String> cookieValues = RequestData.futureCookies.get(id);
+            List<String> cookieValues = RequestData.futureCookies.get(request.id);
             if (cookieValues != null) {
                 respHeaders.put("Set-Cookie", cookieValues);
             }
