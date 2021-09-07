@@ -10,6 +10,7 @@ import dev.jensderuiter.websk.skript.type.Request;
 import org.bukkit.event.Event;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -49,10 +50,19 @@ public class Webserver extends Thread {
             }
             String queryParams = httpExchange.getRequestURI().getQuery();
             String ip = httpExchange.getRemoteAddress().getAddress().getHostAddress();
+            String method = httpExchange.getRequestMethod();
+            InputStream body = httpExchange.getRequestBody();
+            StringBuilder bodyString = new StringBuilder();
+            int i;
+            while ((i = body.read()) != -1) {
+                bodyString.append((char) i);
+            }
             Request request = new Request(
                     queryParams,
                     ip,
-                    cookies
+                    cookies,
+                    method,
+                    bodyString.toString()
             );
 
             Function skriptFunction = Functions.getFunction(function);

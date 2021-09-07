@@ -9,13 +9,17 @@ public class Request {
 
     public int id;
     public Map<String, String> params;
+    public Map<String, String> formParams;
     public Map<String, String> cookies = new HashMap<>();
     public String ip;
+    public String method;
 
-    public Request(String queryParams, String ip, String cookies) {
+    public Request(String queryParams, String ip, String cookies, String method, String body) {
         this.id = Objects.hash(cookies, queryParams, ip);;
         this.params = queryToMap(queryParams);
         this.ip = ip;
+        this.method = method;
+        this.formParams = queryToMap(body);
         for (String cookie : cookies.split(";")) {
             cookie = cookie.trim();
             if (cookie.length() <= 2) continue;
