@@ -45,7 +45,12 @@ public class ExprRequestParam extends SimpleExpression<String> {
     protected String[] get(Event event) {
         Request requestObj = request.getSingle(event);
         String paramObj = param.getSingle(event);
-        String result = requestObj.params.get(paramObj);
+        String result;
+        if (!requestObj.method.equalsIgnoreCase("post")) {
+            result = requestObj.params.get(paramObj);
+        } else {
+            result = requestObj.formParams.get(paramObj);
+        }
         return new String[]{result};
     }
 
