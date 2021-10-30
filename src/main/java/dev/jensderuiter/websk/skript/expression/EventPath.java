@@ -25,7 +25,10 @@ public class EventPath extends SimpleExpression<String> {
 
     @Override
     protected String @NotNull [] get(@NotNull Event event) {
-        return new String[] {((ServerEvent) event).getHttpExchange().getRequestURI().toString()};
+        String path = ((ServerEvent) event).getHttpExchange().getRequestURI().toString();
+        if (path.contains("?"))
+            path = path.split("\\?")[0];
+        return new String[] {path};
     }
 
     @Override
