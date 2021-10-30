@@ -1,15 +1,15 @@
 package dev.jensderuiter.websk.web;
 
 import ch.njol.skript.Skript;
-import ch.njol.skript.lang.SkriptParser;
-import ch.njol.skript.lang.function.Function;
-import ch.njol.skript.lang.function.Functions;
+import ch.njol.skript.lang.TriggerItem;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpServer;
 import dev.jensderuiter.websk.Main;
+import dev.jensderuiter.websk.skript.effect.EffReturn;
+import dev.jensderuiter.websk.skript.factory.ServerEvent;
+import dev.jensderuiter.websk.skript.factory.ServerObject;
 import dev.jensderuiter.websk.skript.type.Request;
 import org.bukkit.Bukkit;
-import org.bukkit.event.Event;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +17,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Objects;
 
 public class Webserver extends Thread {
 
@@ -36,13 +35,13 @@ public class Webserver extends Thread {
         innerServer.stop(0);
     }
 
-    public void setStringContext(String path, String function) {
+    public void setStringContext(final ServerObject object) {
         try {
-            innerServer.removeContext(path);
+            innerServer.removeContext("/");
         } catch (IllegalArgumentException ignored) {
         }
 
-        innerServer.createContext(path, httpExchange -> {
+        innerServer.createContext("/", httpExchange -> {
             Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
                 String cookies = "";
                 if (httpExchange.getRequestHeaders().containsKey("Cookie")) {
@@ -59,7 +58,7 @@ public class Webserver extends Thread {
                 int i;
                 while (true) {
                     try {
-                        if (!((i = body.read()) != -1)) break;
+                        if ((i = body.read()) == -1) break;
                         bodyString.append((char) i);
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -74,18 +73,12 @@ public class Webserver extends Thread {
                         bodyString.toString()
                 );
 
-                Function skriptFunction = Functions.getFunction(function);
-                if (skriptFunction == null) {
-                    Skript.error("The webserver wasn't given a valid function!");
-                    return;
-                }
 
-                Object[] returned = skriptFunction.execute(new Object[][]{new Object[]{request}});
-                if (returned.length == 0) {
-                    Skript.error("The webserver function didn't return a valid response. It should be a string.");
-                    return;
-                }
-                String responseString = (String) returned[0];
+                EffReturn.value = null; // We clear the previous value, if set or not
+                TriggerItem.walk(object.getOnRequest().get(0), new ServerEvent(this, request, httpExchange));
+                String responseString = EffReturn.value;
+                if (responseString == null)
+                    Skript.warning("You are not retuning anything on from a webserver request!");
 
                 byte[] response = (responseString != null ? responseString : "").getBytes(StandardCharsets.UTF_8);
                 Headers respHeaders = httpExchange.getResponseHeaders();

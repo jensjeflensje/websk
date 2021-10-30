@@ -7,6 +7,7 @@ import ch.njol.skript.expressions.base.EventValueExpression;
 import ch.njol.skript.lang.ParseContext;
 import ch.njol.skript.registrations.Classes;
 import ch.njol.yggdrasil.Fields;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.NotSerializableException;
 import java.io.StreamCorruptedException;
@@ -21,13 +22,13 @@ public class ClassInfos {
                 .parser(new Parser<Request>() {
 
                     @Override
-                    public Request parse(String input, ParseContext context) {
+                    public Request parse(@NotNull String input, @NotNull ParseContext context) {
                         return null;
 
                     }
 
                     @Override
-                    public boolean canParse(ParseContext context) {
+                    public boolean canParse(@NotNull ParseContext context) {
                         return false;
                     }
 
@@ -37,42 +38,14 @@ public class ClassInfos {
                     }
 
                     @Override
-                    public String getVariableNamePattern() {
+                    public @NotNull String getVariableNamePattern() {
                         return ".+";
                     }
 
                     @Override
-                    public String toString(Request request, int flags) {
+                    public @NotNull String toString(@NotNull Request request, int flags) {
                         return toVariableNameString(request);
                     }
-                }).serializer(new Serializer<Request>() {
-
-                    @Override
-                    public Fields serialize(Request request) throws NotSerializableException {
-                        Fields fields = new Fields();
-                        return fields;
-                    }
-
-                    @Override
-                    public Request deserialize(Fields fields) throws StreamCorruptedException {
-                        return null;
-                    }
-
-                    @Override
-                    public void deserialize(Request raid, Fields fields) throws StreamCorruptedException, NotSerializableException {
-                        assert false;
-                    }
-
-                    @Override
-                    public boolean mustSyncDeserialization() {
-                        return true;
-                    }
-
-                    @Override
-                    protected boolean canBeInstantiated() {
-                        return false;
-                    }
-
                 }));
     }
 
