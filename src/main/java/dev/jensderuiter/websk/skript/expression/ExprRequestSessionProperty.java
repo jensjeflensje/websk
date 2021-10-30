@@ -48,8 +48,6 @@ public class ExprRequestSessionProperty extends SimplePropertyExpression<Request
     protected String @NotNull [] get(@NotNull Event e, Request @NotNull [] source) {
         final String key = exprKey.getSingle(e);
         assert key != null;
-        System.out.println(key + ":");
-        System.out.println(getProperty(key, source[0]));
         return new String[] {getProperty(key, source[0])};
     }
 
