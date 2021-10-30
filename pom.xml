@@ -6,7 +6,7 @@
 
     <groupId>dev.jensderuiter</groupId>
     <artifactId>websk</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
     <packaging>jar</packaging>
 
     <name>WebSK</name>
@@ -89,6 +89,17 @@
             <artifactId>Skript</artifactId>
             <version>2.6-beta3</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.spullara.mustache.java</groupId>
+            <artifactId>compiler</artifactId>
+            <version>0.9.10</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>RELEASE</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>
