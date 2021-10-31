@@ -1,12 +1,13 @@
 package dev.jensderuiter.websk.skript.expression;
 
+import ch.njol.skript.ScriptLoader;
 import ch.njol.skript.Skript;
-import ch.njol.skript.lang.Expression;
-import ch.njol.skript.lang.ExpressionType;
-import ch.njol.skript.lang.SkriptParser;
+import ch.njol.skript.SkriptAddon;
+import ch.njol.skript.lang.*;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.Kleenean;
+import ch.njol.util.StringUtils;
 import com.github.mustachejava.Code;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
@@ -14,7 +15,10 @@ import com.github.mustachejava.MustacheFactory;
 import com.github.mustachejava.codes.IterableCode;
 import com.github.mustachejava.codes.NotIterableCode;
 import com.github.mustachejava.codes.ValueCode;
+import dev.jensderuiter.websk.utils.ReflectionUtils;
+import dev.jensderuiter.websk.utils.SkriptUtils;
 import org.bukkit.event.Event;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.*;
@@ -23,8 +27,7 @@ import java.util.regex.Pattern;
 
 public class ExprLoadFile extends SimpleExpression<String> {
 
-    Pattern pattern = Pattern.compile("%[^%]*%");
-
+    final Pattern pattern = Pattern.compile("show ([\\w- {.}\"]+)");
 
     static {
         final String pattern = ReflectionUtils.classExist("info.itsthesky.SkImage.SkImage") ? "template file" : "file";
@@ -34,7 +37,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
     private Expression<String> fileName;
 
     @Override
-    public Class<? extends String> getReturnType() {
+    public @NotNull Class<? extends String> getReturnType() {
         return String.class;
     }
 
@@ -45,13 +48,13 @@ public class ExprLoadFile extends SimpleExpression<String> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parser) {
+    public boolean init(Expression<?> @NotNull [] exprs, int matchedPattern, @NotNull Kleenean isDelayed, SkriptParser.@NotNull ParseResult parser) {
         fileName = (Expression<String>) exprs[0];
         return true;
     }
 
     @Override
-    public String toString(Event event, boolean debug) {
+    public @NotNull String toString(Event event, boolean debug) {
         return "file " + fileName.toString(event, debug);
     }
 
@@ -60,7 +63,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
     }
 
     @Override
-    protected String[] get(Event event) {
+    protected String @NotNull [] get(@NotNull Event event) {
         String fileNameObj = fileName.getSingle(event);
         if (fileNameObj == null) {
             Skript.error("Template file does not exist: " + fileNameObj);
@@ -90,20 +93,38 @@ public class ExprLoadFile extends SimpleExpression<String> {
 
             for (Code code : template.getCodes()) {
                 if (code.getName() == null) continue;
+                final Matcher exprMatcher = pattern.matcher(code.getName());
+                if (exprMatcher.matches()) {
 
-                boolean shouldBeUsed = false;
-                if (code instanceof ValueCode) {
-                    shouldBeUsed = true;
-                } else if (code instanceof NotIterableCode) {
-                    shouldBeUsed = true;
-                } else if (code instanceof IterableCode) {
-                    shouldBeUsed = true;
-                }
+                    final String inputString = exprMatcher.group(1);
 
-                System.out.println(code.getName());
-                System.out.println(Variables.getVariable(code.getName(), event, true));
-                if (shouldBeUsed) {
-                    variablesUsed.put(code.getName(), Variables.getVariable(code.getName(), event, true));
+                    final Expression<?> expression = SkriptUtils.parseExpression(
+                            inputString,
+                            Skript.getExpressions(),
+                            "Cannot understand this expression: '" + inputString + "'"
+                    );
+                    if (expression == null)
+                        break;
+
+                    final String content = expression.isSingle() ? expression.getSingle(event).toString() :
+                            StringUtils.join(expression.getArray(event), ", ");
+                    code.append(content);
+
+                } else {
+                    boolean shouldBeUsed = false;
+                    if (code instanceof ValueCode) {
+                        shouldBeUsed = true;
+                    } else if (code instanceof NotIterableCode) {
+                        shouldBeUsed = true;
+                    } else if (code instanceof IterableCode) {
+                        shouldBeUsed = true;
+                    }
+
+                    /* System.out.println(code.getName());
+                    System.out.println(Variables.getVariable(code.getName(), event, true)); */
+                    if (shouldBeUsed) {
+                        variablesUsed.put(code.getName(), Variables.getVariable(code.getName(), event, true));
+                    }
                 }
 
             }
