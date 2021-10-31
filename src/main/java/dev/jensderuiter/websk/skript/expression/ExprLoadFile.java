@@ -98,9 +98,6 @@ public class ExprLoadFile extends SimpleExpression<String> {
                 } else if (code instanceof IterableCode) {
                     shouldBeUsed = true;
                 }
-
-                System.out.println(code.getName());
-                System.out.println(Variables.getVariable(code.getName(), event, true));
                 if (shouldBeUsed) {
                     variablesUsed.put(code.getName(), Variables.getVariable(code.getName(), event, true));
                 }
