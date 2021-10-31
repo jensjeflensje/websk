@@ -8,10 +8,7 @@ import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.Kleenean;
 import ch.njol.util.StringUtils;
-import com.github.mustachejava.Code;
-import com.github.mustachejava.DefaultMustacheFactory;
-import com.github.mustachejava.Mustache;
-import com.github.mustachejava.MustacheFactory;
+import com.github.mustachejava.*;
 import com.github.mustachejava.codes.IterableCode;
 import com.github.mustachejava.codes.NotIterableCode;
 import com.github.mustachejava.codes.ValueCode;
@@ -27,7 +24,7 @@ import java.util.regex.Pattern;
 
 public class ExprLoadFile extends SimpleExpression<String> {
 
-    final Pattern pattern = Pattern.compile("show ([\\w- {.}\"]+)");
+    final Pattern pattern = Pattern.compile("show (.+)");
 
     static {
         final String pattern = ReflectionUtils.classExist("info.itsthesky.SkImage.SkImage") ? "template file" : "file";
@@ -64,6 +61,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
 
     @Override
     protected String @NotNull [] get(@NotNull Event event) {
+        final List<String> errors = new ArrayList<>();
         String fileNameObj = fileName.getSingle(event);
         if (fileNameObj == null) {
             Skript.error("Template file does not exist: " + fileNameObj);
@@ -87,7 +85,13 @@ public class ExprLoadFile extends SimpleExpression<String> {
             }
 
             MustacheFactory mf = new DefaultMustacheFactory();
-            Mustache template = mf.compile(new StringReader(fileContents), fileNameObj);
+            Mustache template;
+            try {
+                template = mf.compile(new StringReader(fileContents), fileNameObj);
+            } catch (MustacheException ex) {
+                errors.add(ex.getMessage());
+                return errorTemplate(fileNameObj, errors);
+            }
 
             HashMap<String, Object> variablesUsed = new HashMap<>();
 
@@ -101,13 +105,16 @@ public class ExprLoadFile extends SimpleExpression<String> {
                     final Expression<?> expression = SkriptUtils.parseExpression(
                             inputString,
                             Skript.getExpressions(),
-                            "Cannot understand this expression: '" + inputString + "'"
-                    );
-                    if (expression == null)
-                        break;
+                            null, event);
+                    if (expression == null) {
+                        errors.add("Cannot understand this expression: '" + inputString + "'");
+                        continue;
+                    }
 
                     final String content = expression.isSingle() ? expression.getSingle(event).toString() :
                             StringUtils.join(expression.getArray(event), ", ");
+                    if (content.isEmpty())
+                        errors.add("Expression used '"+expression.toString(null, false)+"' is not set for the current event.");
                     code.append(content);
 
                 } else {
@@ -123,7 +130,8 @@ public class ExprLoadFile extends SimpleExpression<String> {
                     /* System.out.println(code.getName());
                     System.out.println(Variables.getVariable(code.getName(), event, true)); */
                     if (shouldBeUsed) {
-                        variablesUsed.put(code.getName(), Variables.getVariable(code.getName(), event, true));
+                        final Object value = Variables.getVariable(code.getName(), event, true);
+                        variablesUsed.put(code.getName(), value);
                     }
                 }
 
@@ -134,15 +142,44 @@ public class ExprLoadFile extends SimpleExpression<String> {
             try {
                 template.execute(result, variablesUsed).flush();
             } catch (IOException e) {
-                e.printStackTrace();
+                errors.add(e.getMessage());
             }
 
-
-
-            return new String[]{result.getBuffer().toString()};
+            if (errors.isEmpty()) {
+                return new String[]{result.getBuffer().toString()};
+            } else {
+                return errorTemplate(fileNameObj, errors);
+            }
         }
-        Skript.error("Template file does not exist: " + fileNameObj);
-        return new String[]{""};
+        errors.add("The template file " + fileNameObj + " doesn't exist! (Should be under plugins/Skript/templates/"+fileNameObj+")");
+        return errorTemplate(fileNameObj, errors);
     }
 
+    private static String[] errorTemplate(String fileName, List<String> errors) {
+        final StringBuilder pageBuilder = new StringBuilder();
+        pageBuilder.append("<!DOCTYPE html>");
+        pageBuilder.append("<html lang=\"en\">");
+        pageBuilder.append("<head>");
+        pageBuilder.append("	<meta charset=\"UTF-8\">");
+        pageBuilder.append("	<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">");
+        pageBuilder.append("	<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        pageBuilder.append("	<title>Exception Occured</title>");
+        pageBuilder.append("</head>");
+        pageBuilder.append("<body style=\"--tw-bg-opacity: 1; background-color: rgba(243, 244, 246, var(--tw-bg-opacity));\">");
+        pageBuilder.append("	<h1 style=\"text-align: center;\">Exception occured while parsing <code>")
+                .append(fileName)
+                .append("</code>:</h1>");
+        pageBuilder.append("	<ul style=\"font-size: 25px;\">");
+
+        for (String e : errors)
+            pageBuilder.append("		<li>")
+                    .append(e)
+                    .append("</li>");
+
+        pageBuilder.append("	</ul>");
+        pageBuilder.append("</body>");
+        pageBuilder.append("</html>");
+
+        return new String[] {pageBuilder.toString()};
+    }
 }
