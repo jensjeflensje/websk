@@ -23,9 +23,6 @@ import java.util.regex.Pattern;
 
 public class ExprLoadFile extends SimpleExpression<String> {
 
-    Pattern pattern = Pattern.compile("%[^%]*%");
-
-
     static {
         Skript.registerExpression(ExprLoadFile.class, String.class, ExpressionType.COMBINED, "[the] file %string%");
     }
@@ -52,10 +49,6 @@ public class ExprLoadFile extends SimpleExpression<String> {
     @Override
     public String toString(Event event, boolean debug) {
         return "file " + fileName.toString(event, debug);
-    }
-
-    public String replaceLast(String text, String regex, String replacement) {
-        return text.replaceFirst("(?s)" + regex + "(?!.*?" + regex + ")", replacement);
     }
 
     @Override
