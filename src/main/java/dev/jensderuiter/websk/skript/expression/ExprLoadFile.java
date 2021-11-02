@@ -7,14 +7,19 @@ import ch.njol.skript.lang.SkriptParser;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.Kleenean;
-import com.github.mustachejava.Code;
-import com.github.mustachejava.DefaultMustacheFactory;
-import com.github.mustachejava.Mustache;
-import com.github.mustachejava.MustacheFactory;
+import ch.njol.util.NonNullPair;
+import ch.njol.util.StringUtils;
+import com.github.mustachejava.*;
 import com.github.mustachejava.codes.IterableCode;
 import com.github.mustachejava.codes.NotIterableCode;
 import com.github.mustachejava.codes.ValueCode;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+import dev.jensderuiter.websk.utils.ReflectionUtils;
+import dev.jensderuiter.websk.utils.SkriptUtils;
+import dev.jensderuiter.websk.utils.parser.ParserFactory;
 import org.bukkit.event.Event;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.*;
@@ -22,6 +27,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ExprLoadFile extends SimpleExpression<String> {
+
+    final Pattern pattern = Pattern.compile("show (.+)");
 
     static {
         final String pattern = ReflectionUtils.classExist("info.itsthesky.SkImage.SkImage") ? "template file" : "file";
@@ -31,7 +38,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
     private Expression<String> fileName;
 
     @Override
-    public Class<? extends String> getReturnType() {
+    public @NotNull Class<? extends String> getReturnType() {
         return String.class;
     }
 
@@ -42,18 +49,22 @@ public class ExprLoadFile extends SimpleExpression<String> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parser) {
+    public boolean init(Expression<?> @NotNull [] exprs, int matchedPattern, @NotNull Kleenean isDelayed, SkriptParser.@NotNull ParseResult parser) {
         fileName = (Expression<String>) exprs[0];
         return true;
     }
 
     @Override
-    public String toString(Event event, boolean debug) {
+    public @NotNull String toString(Event event, boolean debug) {
         return "file " + fileName.toString(event, debug);
     }
 
-    @Override
-    protected String[] get(Event event) {
+    public String replaceLast(String text, String regex, String replacement) {
+        return text.replaceFirst("(?s)" + regex + "(?!.*?" + regex + ")", replacement);
+    }
+
+    protected String @NotNull [] get(@NotNull Event event) {
+        final List<String> errors = new ArrayList<>();
         String fileNameObj = fileName.getSingle(event);
         if (fileNameObj == null) {
             Skript.error("Template file does not exist: " + fileNameObj);
@@ -61,57 +72,52 @@ public class ExprLoadFile extends SimpleExpression<String> {
         }
         File file = new File("plugins/Skript/templates/", fileNameObj);
         if (file.exists()) {
-            Scanner myReader = null;
-            String fileContents = "";
+            final String fileContents;
             try {
-                myReader = new Scanner(file);
-                while (myReader.hasNextLine()) {
-                    String data = myReader.nextLine();
-                    fileContents = fileContents + data;
-                }
-
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } finally {
-                myReader.close();
-            }
-
-            MustacheFactory mf = new DefaultMustacheFactory();
-            Mustache template = mf.compile(new StringReader(fileContents), fileNameObj);
-
-            HashMap<String, Object> variablesUsed = new HashMap<>();
-
-            for (Code code : template.getCodes()) {
-                if (code.getName() == null) continue;
-
-                boolean shouldBeUsed = false;
-                if (code instanceof ValueCode) {
-                    shouldBeUsed = true;
-                } else if (code instanceof NotIterableCode) {
-                    shouldBeUsed = true;
-                } else if (code instanceof IterableCode) {
-                    shouldBeUsed = true;
-                }
-                if (shouldBeUsed) {
-                    variablesUsed.put(code.getName(), Variables.getVariable(code.getName(), event, true));
-                }
-
-            }
-
-            StringWriter result = new StringWriter();
-
-            try {
-                template.execute(result, variablesUsed).flush();
+                fileContents = Files.asCharSource(file, Charsets.UTF_8).read();
             } catch (IOException e) {
-                e.printStackTrace();
+                errors.add(e.getMessage());
+                return errorTemplate(fileNameObj, errors);
             }
 
+            final NonNullPair<List<String>, String> result = ParserFactory.get().parse(fileContents, event, false);
+            errors.addAll(result.getFirst());
 
-
-            return new String[]{result.getBuffer().toString()};
+            if (errors.isEmpty()) {
+                return new String[]{result.getSecond()};
+            } else {
+                return errorTemplate(fileNameObj, errors);
+            }
         }
-        Skript.error("Template file does not exist: " + fileNameObj);
-        return new String[]{""};
+        errors.add("The template file " + fileNameObj + " doesn't exist! (Should be under plugins/Skript/templates/"+fileNameObj+")");
+        return errorTemplate(fileNameObj, errors);
     }
 
+    private static String[] errorTemplate(String fileName, List<String> errors) {
+        final StringBuilder pageBuilder = new StringBuilder();
+        pageBuilder.append("<!DOCTYPE html>");
+        pageBuilder.append("<html lang=\"en\">");
+        pageBuilder.append("<head>");
+        pageBuilder.append("	<meta charset=\"UTF-8\">");
+        pageBuilder.append("	<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">");
+        pageBuilder.append("	<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        pageBuilder.append("	<title>Exception Occured</title>");
+        pageBuilder.append("</head>");
+        pageBuilder.append("<body style=\"--tw-bg-opacity: 1; background-color: rgba(243, 244, 246, var(--tw-bg-opacity));\">");
+        pageBuilder.append("	<h1 style=\"text-align: center;\">Exception occured while parsing <code>")
+                .append(fileName)
+                .append("</code>:</h1>");
+        pageBuilder.append("	<ul style=\"font-size: 25px;\">");
+
+        for (String e : errors)
+            pageBuilder.append("		<li>")
+                    .append(e)
+                    .append("</li>");
+
+        pageBuilder.append("	</ul>");
+        pageBuilder.append("</body>");
+        pageBuilder.append("</html>");
+
+        return new String[] {pageBuilder.toString()};
+    }
 }

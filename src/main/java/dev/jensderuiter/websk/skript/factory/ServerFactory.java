@@ -18,7 +18,8 @@ public class ServerFactory {
 
     public static final SectionValidator webValidator = new SectionValidator()
             .addEntry("port", false)
-            .addSection("on request", false);
+            .addSection("on request", false)
+            .addSection("on error", true);
 
     public ServerObject parse(SectionNode node) {
 
@@ -36,13 +37,14 @@ public class ServerFactory {
         }
 
         final SectionNode onRequest = (SectionNode) node.get("on request");
+        final @Nullable SectionNode onError = (SectionNode) node.get("on error");
 
         // This should never happen btw, but it's to avoid NPE
         if (onRequest == null)
             return null;
 
         final @Nullable ServerObject obj = new ServerObject(port,
-                ScriptLoader.loadItems(onRequest)
+                ScriptLoader.loadItems(onRequest), (onError == null ? null : ScriptLoader.loadItems(onError))
         );
 
         try {

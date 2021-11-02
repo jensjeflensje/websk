@@ -16,6 +16,7 @@ public final class Main extends JavaPlugin {
     private SkriptAddon addon;
     private static SkriptAdapter skriptAdapter;
     public static Webserver webserver = null;
+    public static boolean use26;
 
     @Override
     public void onEnable() {
@@ -29,6 +30,7 @@ public final class Main extends JavaPlugin {
         // This class is from 2.6-alpha1 and +
         final boolean use26 = ReflectionUtils.classExist("ch.njol.skript.conditions.CondIsPluginEnabled");
         skriptAdapter = use26 ? new SkriptV2_6() : new SkriptV2_3();
+        Main.use26 = use26;
     }
 
     public static SkriptAdapter getSkriptAdapter() {
