@@ -1,6 +1,7 @@
 package dev.jensderuiter.websk.utils.parser;
 
 import ch.njol.skript.Skript;
+import ch.njol.skript.expressions.ExprLoopValue;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.NonNullPair;
@@ -21,7 +22,7 @@ public class ParserFactory {
 
     private final Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
     private final Pattern echoPattern = Pattern.compile("show (.+)");
-    private final Pattern forPattern = Pattern.compile("(for|loop) (.+)");
+    private final Pattern forPattern = Pattern.compile("(for|loop) ([^>]+) > (.+)");
     private final Pattern endLoopPattern = Pattern.compile("\\{\\{\\/([^}]+)}}");
     private static final ParserFactory instance = new ParserFactory();
 
@@ -34,6 +35,8 @@ public class ParserFactory {
         if (content.isEmpty())
             return new NonNullPair<>(new ArrayList<>(), "");
 
+      
+        final String originalContent = content;
         final List<String> errors = new ArrayList<>();
 
         final Matcher codeMatcher = codePattern.matcher(content);
@@ -72,6 +75,7 @@ public class ParserFactory {
             } else if (loopMatcher.find()) { // Start loop
 
                 final String expr = loopMatcher.group(2);
+                final String loopName = loopMatcher.group(3);
 
                 final Expression<?> expression = SkriptUtils.parseExpression(expr, null, event);
                 Object[] values;
@@ -84,23 +88,20 @@ public class ParserFactory {
                     }
                     values = expression.getArray(event);
                 }
-
-                /* if (inLoop) {
-                    errors.add("Starting a loop '"+varName+"', but was already in before. You can't have two loop in the same section.");
-                    continue;
-                }
-
-                inLoop = true; */
-                final Matcher endLoopMatcher = endLoopPattern.matcher(content);
+                inLoop = true;
+                final Matcher endLoopMatcher = endLoopPattern.matcher(originalContent);
                 if (!endLoopMatcher.find()) {
                     errors.add("Unable to find end of the '"+expr+"' loop.");
                     continue;
                 }
-                if (subGroup)
-                    System.out.println("Content: " + content);
-                final String codeBetween = content
-                        .split(escape(data))[1]
-                        .split(escape("{{/" + expr + "}}"))[0];
+                final String codeBetween;
+                try {
+                    codeBetween = originalContent
+                            .split(Pattern.quote(data))[1]
+                            .split(Pattern.quote("{{/" + loopName + "}}"))[0];
+                } catch (Exception ex) {
+                    continue;
+                }
 
                 String codeInside = "";
                 for (Object value : values) {
@@ -108,15 +109,14 @@ public class ParserFactory {
                     final NonNullPair<List<String>, String> parseResult = parse(codeBetween, event, true);
                     errors.addAll(parseResult.getFirst());
                     codeInside += parseResult.getSecond();
+                    LoopValue.lastEntity = null;
                 }
                 content = content.replace(data + codeBetween, codeInside);
 
             } else {
 
                 if (formattedCode.startsWith("/")) {
-                    /* if (!inLoop)
-                        errors.add("Closing '"+formattedCode+"' loop without being in it.");
-                    inLoop = false; */
+                    inLoop = false;
                     content = content.replace(data, "");
 
                 } else {
