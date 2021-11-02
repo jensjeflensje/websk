@@ -35,6 +35,7 @@ public class ParserFactory {
         if (content.isEmpty())
             return new NonNullPair<>(new ArrayList<>(), "");
 
+      
         final String originalContent = content;
         final List<String> errors = new ArrayList<>();
 
@@ -87,7 +88,6 @@ public class ParserFactory {
                     }
                     values = expression.getArray(event);
                 }
-
                 inLoop = true;
                 final Matcher endLoopMatcher = endLoopPattern.matcher(originalContent);
                 if (!endLoopMatcher.find()) {
