@@ -1,6 +1,8 @@
 package dev.jensderuiter.websk.utils;
 
+import ch.njol.skript.ScriptLoader;
 import ch.njol.skript.Skript;
+import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.SkriptParser;
 import ch.njol.skript.lang.SyntaxElement;
 import ch.njol.skript.lang.SyntaxElementInfo;
@@ -8,12 +10,15 @@ import ch.njol.skript.lang.util.SimpleLiteral;
 import ch.njol.skript.log.ParseLogHandler;
 import ch.njol.skript.log.SkriptLogger;
 import ch.njol.skript.variables.Variables;
+import ch.njol.util.NonNullPair;
 import ch.njol.util.StringUtils;
+import dev.jensderuiter.websk.utils.adapter.SkriptAdapter;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +26,13 @@ import java.util.regex.Pattern;
 public final class SkriptUtils {
 
     private static final Pattern varPattern = Pattern.compile("%[\\w-_:*]+%");
+
+    public static Expression<?> parseExpression(
+            String expr,
+            @Nullable String defaultError,
+            Event event) {
+        return parseExpression(expr, Skript.getExpressions(), defaultError, event);
+    }
 
     /**
      * Original code from SkriptLang team, I just changed how the SkriptParser work with Expression.
@@ -69,8 +81,10 @@ public final class SkriptUtils {
 
                 final SkriptParser parser = new SkriptParser(expr);
                 final T e;
+                final NonNullPair<String, Class<? extends Event>[]> previous = new NonNullPair<>(ScriptLoader.getCurrentEventName(), SkriptAdapter.getInstance().getCurrentEvents());
                 try {
 
+                    SkriptAdapter.getInstance().setCurrentEvent(event.getEventName(), event.getClass());
                     // The parse method is private
                     final Method method = parser
                             .getClass()
@@ -80,6 +94,8 @@ public final class SkriptUtils {
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     return null;
+                } finally {
+                    SkriptAdapter.getInstance().setCurrentEvent(previous.getFirst(), previous.getSecond());
                 }
                 if (e == null) {
                     log.printError(defaultError);

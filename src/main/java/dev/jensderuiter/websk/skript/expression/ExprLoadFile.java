@@ -1,19 +1,23 @@
 package dev.jensderuiter.websk.skript.expression;
 
-import ch.njol.skript.ScriptLoader;
 import ch.njol.skript.Skript;
-import ch.njol.skript.SkriptAddon;
-import ch.njol.skript.lang.*;
+import ch.njol.skript.lang.Expression;
+import ch.njol.skript.lang.ExpressionType;
+import ch.njol.skript.lang.SkriptParser;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.Kleenean;
+import ch.njol.util.NonNullPair;
 import ch.njol.util.StringUtils;
 import com.github.mustachejava.*;
 import com.github.mustachejava.codes.IterableCode;
 import com.github.mustachejava.codes.NotIterableCode;
 import com.github.mustachejava.codes.ValueCode;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import dev.jensderuiter.websk.utils.ReflectionUtils;
 import dev.jensderuiter.websk.utils.SkriptUtils;
+import dev.jensderuiter.websk.utils.parser.ParserFactory;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,7 +63,6 @@ public class ExprLoadFile extends SimpleExpression<String> {
         return text.replaceFirst("(?s)" + regex + "(?!.*?" + regex + ")", replacement);
     }
 
-    @Override
     protected String @NotNull [] get(@NotNull Event event) {
         final List<String> errors = new ArrayList<>();
         String fileNameObj = fileName.getSingle(event);
@@ -69,84 +72,19 @@ public class ExprLoadFile extends SimpleExpression<String> {
         }
         File file = new File("plugins/Skript/templates/", fileNameObj);
         if (file.exists()) {
-            Scanner myReader = null;
-            String fileContents = "";
+            final String fileContents;
             try {
-                myReader = new Scanner(file);
-                while (myReader.hasNextLine()) {
-                    String data = myReader.nextLine();
-                    fileContents = fileContents + data;
-                }
-
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } finally {
-                myReader.close();
-            }
-
-            MustacheFactory mf = new DefaultMustacheFactory();
-            Mustache template;
-            try {
-                template = mf.compile(new StringReader(fileContents), fileNameObj);
-            } catch (MustacheException ex) {
-                errors.add(ex.getMessage());
+                fileContents = Files.asCharSource(file, Charsets.UTF_8).read();
+            } catch (IOException e) {
+                errors.add(e.getMessage());
                 return errorTemplate(fileNameObj, errors);
             }
 
-            HashMap<String, Object> variablesUsed = new HashMap<>();
-
-            for (Code code : template.getCodes()) {
-                if (code.getName() == null) continue;
-                final Matcher exprMatcher = pattern.matcher(code.getName());
-                if (exprMatcher.matches()) {
-
-                    final String inputString = exprMatcher.group(1);
-
-                    final Expression<?> expression = SkriptUtils.parseExpression(
-                            inputString,
-                            Skript.getExpressions(),
-                            null, event);
-                    if (expression == null) {
-                        errors.add("Cannot understand this expression: '" + inputString + "'");
-                        continue;
-                    }
-
-                    final String content = expression.isSingle() ? expression.getSingle(event).toString() :
-                            StringUtils.join(expression.getArray(event), ", ");
-                    if (content.isEmpty())
-                        errors.add("Expression used '"+expression.toString(null, false)+"' is not set for the current event.");
-                    code.append(content);
-
-                } else {
-                    boolean shouldBeUsed = false;
-                    if (code instanceof ValueCode) {
-                        shouldBeUsed = true;
-                    } else if (code instanceof NotIterableCode) {
-                        shouldBeUsed = true;
-                    } else if (code instanceof IterableCode) {
-                        shouldBeUsed = true;
-                    }
-
-                    /* System.out.println(code.getName());
-                    System.out.println(Variables.getVariable(code.getName(), event, true)); */
-                    if (shouldBeUsed) {
-                        final Object value = Variables.getVariable(code.getName(), event, true);
-                        variablesUsed.put(code.getName(), value);
-                    }
-                }
-
-            }
-
-            StringWriter result = new StringWriter();
-
-            try {
-                template.execute(result, variablesUsed).flush();
-            } catch (IOException e) {
-                errors.add(e.getMessage());
-            }
+            final NonNullPair<List<String>, String> result = ParserFactory.get().parse(fileContents, event, false);
+            errors.addAll(result.getFirst());
 
             if (errors.isEmpty()) {
-                return new String[]{result.getBuffer().toString()};
+                return new String[]{result.getSecond()};
             } else {
                 return errorTemplate(fileNameObj, errors);
             }
