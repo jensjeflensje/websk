@@ -2,6 +2,7 @@ package dev.jensderuiter.websk.utils.parser;
 
 import ch.njol.skript.Skript;
 import ch.njol.skript.expressions.ExprLoopValue;
+import ch.njol.skript.lang.Condition;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.NonNullPair;
@@ -22,8 +23,10 @@ public class ParserFactory {
 
     private final Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
     private final Pattern echoPattern = Pattern.compile("show (.+)");
-    private final Pattern forPattern = Pattern.compile("(for|loop) ([^>]+) > (.+)");
+    private final Pattern forPattern = Pattern.compile("(for|loop) (.+) -> (.+)");
+    private final Pattern ifPattern = Pattern.compile("if (.+) -> (.+)");
     private final Pattern endLoopPattern = Pattern.compile("\\{\\{\\/([^}]+)}}");
+    private final Pattern endConditionPattern = Pattern.compile("\\{\\{\\/{2}([^}]+)}}");
     private static final ParserFactory instance = new ParserFactory();
 
     public static ParserFactory get() {
@@ -49,6 +52,7 @@ public class ParserFactory {
             // Matchers
             final Matcher echoMatcher = echoPattern.matcher(formattedCode);
             final Matcher loopMatcher = forPattern.matcher(formattedCode);
+            final Matcher ifMatcher = ifPattern.matcher(formattedCode);
 
             if (formattedCode.startsWith("#")) { // Commentary node
                 content = content.replace(data, "");
@@ -71,6 +75,44 @@ public class ParserFactory {
                     value = "<none>";
                 }
                 content = content.replace(data, value);
+
+            } else if (ifMatcher.find()) {
+
+                final String condStr = ifMatcher.group(1);
+                final String condName = ifMatcher.group(2);
+
+                final Condition condition = SkriptUtils.parseExpression(
+                        condStr, Skript.getConditions().iterator(),
+                        null, event);
+                if (condition == null) {
+                    errors.add("Can't understand this condition '"+condStr+"'");
+                    continue;
+                }
+
+                final Matcher endCondMatcher = endConditionPattern.matcher(originalContent);
+                if (!endCondMatcher.find()) {
+                    errors.add("Unable to find end of the '"+condName+"' condition.");
+                    continue;
+                }
+
+                final String codeBetween;
+                try {
+                    codeBetween = originalContent
+                            .split(Pattern.quote(data))[1]
+                            .split(Pattern.quote("{{//" + condName + "}}"))[0];
+                } catch (Exception ex) {
+                    continue;
+                }
+
+                final NonNullPair<List<String>, String> parseResult = parse(codeBetween, event, true);
+                errors.addAll(parseResult.getFirst());
+                final String codeInside = parseResult.getSecond();
+
+                if (condition.check(event)) {
+                    content = content.replace(data + codeBetween, codeInside);
+                } else {
+                    content = content.replace(data + codeBetween, "");
+                }
 
             } else if (loopMatcher.find()) { // Start loop
 
@@ -115,10 +157,11 @@ public class ParserFactory {
 
             } else {
 
-                if (formattedCode.startsWith("/")) {
+                if (formattedCode.startsWith("//")) {
+                    content = content.replace(data, "");
+                } else if (formattedCode.startsWith("/")) {
                     inLoop = false;
                     content = content.replace(data, "");
-
                 } else {
                     final String value = parseVariable(formattedCode, event);
                     content = content.replace(data, value);
