@@ -28,7 +28,7 @@ public class LoopValue extends SimpleExpression<Object> {
 
     @Override
     protected Object @NotNull [] get(@NotNull Event event) {
-        return new Object[] {lastEntity};
+        return lastEntity == null ? new Object[0] : new Object[] {lastEntity};
     }
 
     @Override
