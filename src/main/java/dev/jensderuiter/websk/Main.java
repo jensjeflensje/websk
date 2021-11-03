@@ -2,6 +2,7 @@ package dev.jensderuiter.websk;
 
 import ch.njol.skript.Skript;
 import ch.njol.skript.SkriptAddon;
+import dev.jensderuiter.websk.skript.PluginUpdater;
 import dev.jensderuiter.websk.utils.ReflectionUtils;
 import dev.jensderuiter.websk.utils.adapter.SkriptAdapter;
 import dev.jensderuiter.websk.utils.adapter.SkriptV2_3;
@@ -25,6 +26,22 @@ public final class Main extends JavaPlugin {
             addon.loadClasses("dev.jensderuiter.websk", "skript");
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        final PluginUpdater updater = PluginUpdater.create(this, "jensjeflensje", "websk");
+        final PluginUpdater.UpdateState state = updater.check();
+        switch (state) {
+            case LOWER:
+                getLogger().warning("You are using an outdated WebSK version!");
+                getLogger().warning("Latest is " + updater.getLatest() + ", but are are on " + getDescription().getVersion() + "!");
+                getLogger().warning("Update it now: https://github.com/jensjeflensje/websk/releases/latest" + updater.getLatest());
+                break;
+            case EQUAL:
+                getLogger().fine("You are on the latest WebSK version! Well done!");
+                break;
+            case GREATER:
+                getLogger().warning("Detected a custom, tester or nighty WebSK version. Please report every bugs on DiSky's website!");
+                break;
         }
 
         // This class is from 2.6-alpha1 and +
