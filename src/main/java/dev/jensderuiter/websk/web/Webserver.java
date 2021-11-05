@@ -91,12 +91,15 @@ public class Webserver extends Thread {
 
                 byte[] response = (responseString != null ? responseString : "").getBytes(StandardCharsets.UTF_8);
                 Headers respHeaders = httpExchange.getResponseHeaders();
+                respHeaders.clear();
                 List<String> cookieValues = RequestData.futureCookies.get(request.id);
                 if (cookieValues != null) {
                     respHeaders.put("Set-Cookie", cookieValues);
                 }
-                for (Header header : customHeaders)
-                    respHeaders.add(header.getKey(), header.getValue());
+                if (customHeaders != null) {
+                    for (Header header : customHeaders)
+                        respHeaders.add(header.getKey(), header.getValue());
+                }
                 try {
                     httpExchange.sendResponseHeaders(code.intValue(), response.length);
                     OutputStream out = httpExchange.getResponseBody();

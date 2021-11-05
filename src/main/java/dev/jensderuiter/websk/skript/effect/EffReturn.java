@@ -35,8 +35,8 @@ public class EffReturn extends Effect {
     @Override
     protected @Nullable TriggerItem walk(@NotNull Event e) {
         value = input.getSingle(e);
-        headers = exprHeaders.getArray(e);
-        code = exprCode.getSingle(e);
+        headers = exprHeaders == null ? null : exprHeaders.getArray(e);
+        code = exprCode == null ? null : exprCode.getSingle(e);
         return null;
     }
 
