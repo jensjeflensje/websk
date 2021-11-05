@@ -47,6 +47,11 @@ public class ClassInfos {
                         return toVariableNameString(request);
                     }
                 }));
+
+        Classes.registerClass(new ClassInfo<>(Header.class, "webheader")
+                .user("webheaders?")
+                .name("Header")
+                .description("Represents a request header with a key and a value."));
     }
 
 }
