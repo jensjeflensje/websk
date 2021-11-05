@@ -8,6 +8,7 @@ import dev.jensderuiter.websk.Main;
 import dev.jensderuiter.websk.skript.effect.EffReturn;
 import dev.jensderuiter.websk.skript.factory.ServerEvent;
 import dev.jensderuiter.websk.skript.factory.ServerObject;
+import dev.jensderuiter.websk.skript.type.Header;
 import dev.jensderuiter.websk.skript.type.Request;
 import org.bukkit.Bukkit;
 
@@ -16,6 +17,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class Webserver extends Thread {
@@ -75,8 +78,14 @@ public class Webserver extends Thread {
 
 
                 EffReturn.value = null; // We clear the previous value, if set or not
+                EffReturn.headers = null; // We clear the previous value, if set or not
+                EffReturn.code = null; // We clear the previous value, if set or not
                 TriggerItem.walk(object.getOnRequest().get(0), new ServerEvent(this, request, httpExchange));
                 String responseString = EffReturn.value;
+                Number code = EffReturn.code;
+                if (code == null)
+                    code = 200;
+                Header[] customHeaders = EffReturn.headers;
                 if (responseString == null)
                     Skript.warning("You are not retuning anything on from a webserver request!");
 
@@ -86,8 +95,10 @@ public class Webserver extends Thread {
                 if (cookieValues != null) {
                     respHeaders.put("Set-Cookie", cookieValues);
                 }
+                for (Header header : customHeaders)
+                    respHeaders.add(header.getKey(), header.getValue());
                 try {
-                    httpExchange.sendResponseHeaders(200, response.length);
+                    httpExchange.sendResponseHeaders(code.intValue(), response.length);
                     OutputStream out = httpExchange.getResponseBody();
                     out.write(response);
                     out.close();
