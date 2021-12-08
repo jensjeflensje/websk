@@ -87,7 +87,7 @@ public class Webserver extends Thread {
                     code = 200;
                 Header[] customHeaders = EffReturn.headers;
                 if (responseString == null)
-                    Skript.warning("You are not retuning anything on from a webserver request!");
+                    Skript.warning("You are not returning anything from a web server request!");
 
                 byte[] response = (responseString != null ? responseString : "").getBytes(StandardCharsets.UTF_8);
                 Headers respHeaders = httpExchange.getResponseHeaders();
