@@ -40,7 +40,7 @@ public final class Main extends JavaPlugin {
                 getLogger().fine("You are on the latest WebSK version! Well done!");
                 break;
             case GREATER:
-                getLogger().warning("Detected a custom, tester or nighty WebSK version. Please report every bugs on DiSky's website!");
+                getLogger().warning("Detected a tester WebSK version. Please report every bugs on our GitHub!");
                 break;
         }
 
