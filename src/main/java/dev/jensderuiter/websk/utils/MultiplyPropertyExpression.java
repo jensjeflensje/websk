@@ -9,8 +9,7 @@ import ch.njol.util.Kleenean;
 import dev.jensderuiter.websk.utils.adapter.SkriptAdapter;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * By Sky, Olyno & SkriptLang team
