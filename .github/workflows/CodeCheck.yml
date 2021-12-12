@@ -2,6 +2,7 @@ name: "CodeCheck"
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches:
       - main
@@ -26,7 +27,3 @@ jobs:
         with:
           languages: java
           
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v1
-        with:
-          languages: java
