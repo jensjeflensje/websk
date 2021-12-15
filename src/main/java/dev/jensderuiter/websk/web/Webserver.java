@@ -20,6 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class Webserver extends Thread {
 
@@ -28,7 +30,7 @@ public class Webserver extends Thread {
     public Webserver(int port) throws IOException {
         innerServer = HttpServer.create(new InetSocketAddress(port), 0);
     }
-
+    
     @Override
     public void run() {
         innerServer.start();
@@ -43,6 +45,33 @@ public class Webserver extends Thread {
             innerServer.removeContext("/");
         } catch (IllegalArgumentException ignored) {
         }
+        
+        innerServer.createContext("/files/", httpExchange -> {
+            Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
+                String responseString = "";
+                String fileName = httpExchange.getRequestURI().toString();
+                fileName =  fileName.replaceFirst("/files/", "");
+                if(!Files.exists(Paths.get("plugins", "Skript", "templates", fileName))){
+                    Skript.warning("[WEBSK] File '" + fileName + "' doesn't exist!");
+                    return;
+                }
+                try {
+                    responseString = new String(Files.readAllBytes(Paths.get("plugins", "Skript", "templates", fileName)));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                Number code = 200;
+                byte[] response = responseString.getBytes(StandardCharsets.UTF_8);
+                try {
+                    httpExchange.sendResponseHeaders(code.intValue(), response.length);
+                    OutputStream out = httpExchange.getResponseBody();
+                    out.write(response);
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        });
 
         innerServer.createContext("/", httpExchange -> {
             Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
