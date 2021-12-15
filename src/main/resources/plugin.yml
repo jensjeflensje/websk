@@ -1,6 +1,12 @@
-name: WebSK
-version: '${project.version}'
 main: dev.jensderuiter.websk.Main
-depend: [ Skript ]
-description: Run a website using Skript
+
+name: WebSK
 author: jensjeflensje
+description: Run a website using Skript
+version: '${project.version}'
+
+api-version: 1.17, 1.16, 1.15, 1.14, 1.13, 1.12
+prefix: WebSK
+website: https://github.com/jensjeflensje/websk
+
+depend: [ Skript ]
