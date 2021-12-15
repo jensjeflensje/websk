@@ -50,6 +50,13 @@ public class Webserver extends Thread {
             Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
                 String responseString = "";
                 String fileName = httpExchange.getRequestURI().toString();
+                
+                //Fast fix due to can't download images using this system
+                if (fileName.endsWith(".png") || fileName.endsWith(".jpg")) {
+                    Skript.warning("[WEBSK] You can't download images using this system!");
+                    Skript.warning("[WEBSK] Wait for next update when we fix it!");
+                    return;
+                }
                 fileName =  fileName.replaceFirst("/files/", "");
                 if(!Files.exists(Paths.get("plugins", "Skript", "templates", fileName))){
                     Skript.warning("[WEBSK] File '" + fileName + "' doesn't exist!");
