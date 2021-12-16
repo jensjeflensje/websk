@@ -23,6 +23,9 @@ import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.io.File;
+import static java.nio.file.StandardCopyOption.*;
+
+
 
 public class Webserver extends Thread {
 
@@ -47,33 +50,19 @@ public class Webserver extends Thread {
         } catch (IllegalArgumentException ignored) {
         }
         
+        // Instant open files from Skript/templates/
         innerServer.createContext("/files/", httpExchange -> {
             Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
                 String responseString = "";
                 String fileName = httpExchange.getRequestURI().toString();
-                
-                //Fast fix due to can't download images using this system
-                if (fileName.endsWith(".png") || fileName.endsWith(".jpg")) {
-                    Skript.warning("[WEBSK] You can't download images using this system!");
-                    Skript.warning("[WEBSK] Wait for next update when we fix it!");
-                    return;
-                }
                 fileName =  fileName.replaceFirst("/files/", "");
-                if(!Files.exists(Paths.get("plugins", "Skript", "templates", fileName))){
-                    Skript.warning("[WEBSK] File '" + fileName + "' doesn't exist!");
-                    return;
-                }
+                String path = "plugins/Skript/templates/" + fileName;
+                File file = new File(path);
+                Skript.warning(fileName);
                 try {
-                    responseString = new String(Files.readAllBytes(Paths.get("plugins", "Skript", "templates", fileName)));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                Number code = 200;
-                byte[] response = responseString.getBytes(StandardCharsets.UTF_8);
-                try {
-                    httpExchange.sendResponseHeaders(code.intValue(), response.length);
+                    httpExchange.sendResponseHeaders(200, file.length());
                     OutputStream out = httpExchange.getResponseBody();
-                    out.write(response);
+                    Files.copy(file.toPath(), out);
                     out.close();
                 } catch (IOException e) {
                     e.printStackTrace();
