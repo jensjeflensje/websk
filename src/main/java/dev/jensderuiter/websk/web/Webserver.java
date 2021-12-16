@@ -20,6 +20,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.io.File;
+import static java.nio.file.StandardCopyOption.*;
+
+
 
 public class Webserver extends Thread {
 
@@ -28,7 +34,7 @@ public class Webserver extends Thread {
     public Webserver(int port) throws IOException {
         innerServer = HttpServer.create(new InetSocketAddress(port), 0);
     }
-
+    
     @Override
     public void run() {
         innerServer.start();
@@ -43,6 +49,29 @@ public class Webserver extends Thread {
             innerServer.removeContext("/");
         } catch (IllegalArgumentException ignored) {
         }
+        
+        // Instant open files from Skript/templates/
+        innerServer.createContext("/files/", httpExchange -> {
+            Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
+                String responseString = "";
+                String fileName = httpExchange.getRequestURI().toString();
+                fileName =  fileName.replaceFirst("/files/", "");
+                String path = "plugins/WebSK/files/" + fileName;
+                if (!Files.exists(Paths.get(path))) {
+                    Skript.warning("[WEBSK] File '" + path + "' doesn't exist!");
+                    return;
+                }
+                File file = new File(path);
+                try {
+                    httpExchange.sendResponseHeaders(200, file.length());
+                    OutputStream out = httpExchange.getResponseBody();
+                    Files.copy(file.toPath(), out);
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        });
 
         innerServer.createContext("/", httpExchange -> {
             Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
@@ -112,5 +141,4 @@ public class Webserver extends Thread {
 
         });
     }
-
 }

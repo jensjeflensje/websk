@@ -70,7 +70,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
             Skript.error("Template file does not exist: " + fileNameObj);
             return new String[]{""};
         }
-        File file = new File("plugins/Skript/templates/", fileNameObj);
+        File file = new File("plugins/WebSK/files/", fileNameObj);
         if (file.exists()) {
             final String fileContents;
             try {
@@ -89,7 +89,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
                 return errorTemplate(fileNameObj, errors);
             }
         }
-        errors.add("The template file " + fileNameObj + " doesn't exist! (Should be under plugins/Skript/templates/"+fileNameObj+")");
+        errors.add("The template file " + fileNameObj + " doesn't exist! (Should be under plugins/WebSK/files/"+fileNameObj+")");
         return errorTemplate(fileNameObj, errors);
     }
 
