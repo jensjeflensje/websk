@@ -56,9 +56,12 @@ public class Webserver extends Thread {
                 String responseString = "";
                 String fileName = httpExchange.getRequestURI().toString();
                 fileName =  fileName.replaceFirst("/files/", "");
-                String path = "plugins/Skript/templates/" + fileName;
+                String path = "plugins/WebSK/files/" + fileName;
+                if (!Files.exists(Paths.get(path))) {
+                    Skript.warning("[WEBSK] File '" + path + "' doesn't exist!");
+                    return;
+                }
                 File file = new File(path);
-                Skript.warning(fileName);
                 try {
                     httpExchange.sendResponseHeaders(200, file.length());
                     OutputStream out = httpExchange.getResponseBody();
@@ -138,5 +141,4 @@ public class Webserver extends Thread {
 
         });
     }
-
 }
