@@ -47,8 +47,12 @@ public final class Main extends JavaPlugin {
                 break;
         }
         
-        Path path = Paths.get("plugins/WebSK/files/");
-        Files.createDirectories(path);
+        try {
+            Path path = Paths.get("plugins/WebSK/files/");
+            Files.createDirectories(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // This class is from 2.6-alpha1 and +
         final boolean use26 = ReflectionUtils.classExist("ch.njol.skript.conditions.CondIsPluginEnabled");
