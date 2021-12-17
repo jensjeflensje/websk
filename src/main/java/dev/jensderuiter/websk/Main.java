@@ -9,9 +9,6 @@ import dev.jensderuiter.websk.utils.adapter.SkriptV2_3;
 import dev.jensderuiter.websk.utils.adapter.SkriptV2_6;
 import dev.jensderuiter.websk.web.Webserver;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.PluginManager;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,8 +47,8 @@ public final class Main extends JavaPlugin {
                 break;
         }
         
-        File folder = new File(getDataFolder(), "folderName");
-        folder.mkdirs();
+        Path path = Paths.get("plugins/WebSK/files/");
+        Files.createDirectories(path);
 
         // This class is from 2.6-alpha1 and +
         final boolean use26 = ReflectionUtils.classExist("ch.njol.skript.conditions.CondIsPluginEnabled");
