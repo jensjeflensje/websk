@@ -43,6 +43,9 @@ public final class Main extends JavaPlugin {
                 getLogger().warning("Detected a test version of WebSK. Please report bugs on our GitHub.");
                 break;
         }
+        
+        File folder = new File(getDataFolder(), "folderName");
+        folder.mkdirs();
 
         // This class is from 2.6-alpha1 and +
         final boolean use26 = ReflectionUtils.classExist("ch.njol.skript.conditions.CondIsPluginEnabled");
