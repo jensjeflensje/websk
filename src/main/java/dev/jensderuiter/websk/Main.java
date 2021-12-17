@@ -47,6 +47,8 @@ public final class Main extends JavaPlugin {
                 break;
         }
         
+        //Simple auto creating files for plugin!
+        //Replace with `bukkit.pluginDirectory` in new updates to add config.yml!
         try {
             Path path = Paths.get("plugins/WebSK/files/");
             Files.createDirectories(path);
