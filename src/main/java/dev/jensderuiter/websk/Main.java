@@ -9,9 +9,9 @@ import dev.jensderuiter.websk.utils.adapter.SkriptV2_3;
 import dev.jensderuiter.websk.utils.adapter.SkriptV2_6;
 import dev.jensderuiter.websk.web.Webserver;
 import org.bukkit.plugin.java.JavaPlugin;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginDescriptionFile;
+import org.bukkit.plugin.PluginManager;
 
 import java.io.IOException;
 
