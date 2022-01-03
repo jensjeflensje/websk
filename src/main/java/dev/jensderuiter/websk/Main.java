@@ -9,6 +9,9 @@ import dev.jensderuiter.websk.utils.adapter.SkriptV2_3;
 import dev.jensderuiter.websk.utils.adapter.SkriptV2_6;
 import dev.jensderuiter.websk.web.Webserver;
 import org.bukkit.plugin.java.JavaPlugin;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import java.io.IOException;
 
@@ -42,6 +45,15 @@ public final class Main extends JavaPlugin {
             case GREATER:
                 getLogger().warning("Detected a test version of WebSK. Please report bugs on our GitHub.");
                 break;
+        }
+        
+        //Simple auto creating files for plugin!
+        //Replace with `bukkit.pluginDirectory` in new updates to add config.yml!
+        try {
+            Path path = Paths.get("plugins/WebSK/files/");
+            Files.createDirectories(path);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         // This class is from 2.6-alpha1 and +
