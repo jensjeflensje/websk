@@ -18,6 +18,6 @@ If you have idea, or simply you want to make WebSK better — write code, compil
 If you found any bugs, please report them! You can do it by creating Issue on github, or talking to us on our discord server!
 
 ### Links
-Temporary docs: https://files.jederu.nl/websk.html
-Discord server: https://discord.gg/u7FG5FtHHw
-SkForums page: https://forums.skunity.com/resources/websk.1372/
+Temporary docs: https://files.jederu.nl/websk.html<br>
+Discord server: https://discord.gg/u7FG5FtHHw<br>
+SkForums page: https://forums.skunity.com/resources/websk.1372/<br>
