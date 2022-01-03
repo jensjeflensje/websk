@@ -6,10 +6,10 @@ WebSK is a Skript addon which lets you create the back-end of webites using Skri
 To compile WebSK you need to use the latest Maven. Only good Java version to export plugin is **Java 8 (1.8)**.
 **Remeber to navigate to location on UNIX-based systems** '''cd source-folder'''
 
-'''bash
+```bash
 ./mvn clean install # on UNIX-based systems (mac, linux)
 mvn clean install # on Windows
-'''
+```
 
 ### Contributing
 If you have idea, or simply you want to make WebSK better — write code, compile it, check for errors, and create Pull Request. In PR description write what your code adds and describe it.
