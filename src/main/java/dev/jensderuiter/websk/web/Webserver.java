@@ -11,6 +11,7 @@ import dev.jensderuiter.websk.skript.factory.ServerObject;
 import dev.jensderuiter.websk.skript.type.Header;
 import dev.jensderuiter.websk.skript.type.Request;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,8 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.io.File;
 import static java.nio.file.StandardCopyOption.*;
-
-
 
 public class Webserver extends Thread {
 
@@ -50,29 +49,36 @@ public class Webserver extends Thread {
         } catch (IllegalArgumentException ignored) {
         }
         
-        // Instant open files from Skript/templates/
-        innerServer.createContext("/files/", httpExchange -> {
-            Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
-                String responseString = "";
-                String fileName = httpExchange.getRequestURI().toString();
-                fileName =  fileName.replaceFirst("/files/", "");
-                String path = "plugins/WebSK/files/" + fileName;
-                if (!Files.exists(Paths.get(path))) {
-                    Skript.warning("[WEBSK] File '" + path + "' doesn't exist!");
-                    return;
-                }
-                File file = new File(path);
-                try {
-                    httpExchange.sendResponseHeaders(200, file.length());
-                    OutputStream out = httpExchange.getResponseBody();
-                    Files.copy(file.toPath(), out);
-                    out.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        // Check if this feature is enabled in config
+        Boolean instantopenfiles = Main.getInstance().getConfig().getBoolean("instant-open-files");
+        if (instantopenfiles == true) {
+            // Instant open files from Skript/templates/
+            innerServer.createContext("/files/", httpExchange -> {
+                Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
+                    String responseString = "";
+                    String fileName = httpExchange.getRequestURI().toString();
+                    fileName =  fileName.replaceFirst("/files/", "");
+                    String path = "plugins/WebSK/files/" + fileName;
+                    if (!Files.exists(Paths.get(path))) {
+                        Skript.warning("[WebSK] File '" + path + "' doesn't exist!");
+                        return;
+                    }
+                    
+                    File file = new File(path);
+                    
+                    try {
+                        httpExchange.sendResponseHeaders(200, file.length());
+                        OutputStream out = httpExchange.getResponseBody();
+                        Files.copy(file.toPath(), out);
+                        out.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    
+                });
             });
-        });
-
+        }
+        
         innerServer.createContext("/", httpExchange -> {
             Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
                 String cookies = "";
