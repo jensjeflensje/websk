@@ -37,7 +37,6 @@ public class ClassInfos {
                         return String.valueOf(request.id);
                     }
 
-                    @Override
                     public @NotNull String getVariableNamePattern() {
                         return ".+";
                     }
