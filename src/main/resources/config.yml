@@ -1,0 +1,8 @@
+#
+# Welcome to WebSK config!
+# In this file you enable and disable WebSK's functions!
+#
+
+# Using this, you can open web files, with connecting to <yourpage>/files/<file>;
+# It is useful when writing Html Web Page, with a lot of files (images, css, and others!)
+instant-open-files: true
