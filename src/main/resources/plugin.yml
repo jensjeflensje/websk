@@ -1,6 +1,9 @@
+main: dev.jensderuiter.websk.Main
 name: WebSK
 version: '${project.version}'
-main: dev.jensderuiter.websk.Main
-depend: [ Skript ]
 description: Run a website using Skript
 author: jensjeflensje
+api-version: 1.13
+
+depend: [ Skript ]
+prefix: WebSK
