@@ -1,18 +1,16 @@
 package dev.jensderuiter.websk.utils.parser;
 
-import ch.njol.skript.Skript;
-import ch.njol.skript.expressions.ExprLoopValue;
-import ch.njol.skript.lang.Condition;
-import ch.njol.skript.lang.Expression;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.NonNullPair;
-import ch.njol.util.StringUtils;
-import dev.jensderuiter.websk.skript.expression.LoopValue;
-import dev.jensderuiter.websk.utils.SkriptUtils;
+import dev.jensderuiter.websk.skript.type.statements.*;
 import org.bukkit.event.Event;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,156 +19,76 @@ import java.util.regex.Pattern;
  */
 public class ParserFactory {
 
+    private final List<Class<? extends WebStatement>> registeredStatements;
+
     private final Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
     private final Pattern echoPattern = Pattern.compile("show (.+)");
     private final Pattern forPattern = Pattern.compile("(for|loop) (.+) -> (.+)");
     private final Pattern ifPattern = Pattern.compile("if (.+) -> (.+)");
-    private final Pattern endLoopPattern = Pattern.compile("\\{\\{\\/([^}]+)}}");
-    private final Pattern endConditionPattern = Pattern.compile("\\{\\{\\/{2}([^}]+)}}");
+    private final Pattern endLoopPattern = Pattern.compile("\\{\\{/([^}]+)}}");
+    private final Pattern endConditionPattern = Pattern.compile("\\{\\{/{2}([^}]+)}}");
     private static final ParserFactory instance = new ParserFactory();
+
+    public ParserFactory() {
+        registeredStatements = new ArrayList<>();
+        registeredStatements.add(ShowStatement.class);
+        registeredStatements.add(CommentStatement.class);
+        registeredStatements.add(IfStatement.class);
+        registeredStatements.add(ClosingStatement.class);
+    }
 
     public static ParserFactory get() {
         return instance;
     }
 
-    private boolean inLoop = false;
-    public NonNullPair<List<String>, String> parse(String content, Event event, boolean subGroup) {
+    public String content;
+    public List<String> errors;
+
+    public NonNullPair<List<String>, String> parse(String raw, Event event) {
+        content = raw;
+        errors = new ArrayList<>();
+
         if (content.isEmpty())
             return new NonNullPair<>(new ArrayList<>(), "");
 
-      
-        final String originalContent = content;
-        final List<String> errors = new ArrayList<>();
-
         final Matcher codeMatcher = codePattern.matcher(content);
 
-        while (codeMatcher.find()) {
+        core: while (codeMatcher.find()) {
             final String data = codeMatcher.group();
             final String code = codeMatcher.group(1);
-            final String formattedCode = code.replaceAll("\\t", "").replaceAll( " {4}", "");
+            for (Class<? extends WebStatement> cStatement : registeredStatements) {
 
-            // Matchers
-            final Matcher echoMatcher = echoPattern.matcher(formattedCode);
-            final Matcher loopMatcher = forPattern.matcher(formattedCode);
-            final Matcher ifMatcher = ifPattern.matcher(formattedCode);
+                final WebStatement statement = construct(cStatement);
+                if (statement == null)
+                    throw new UnsupportedOperationException("One of the registered statement ("+cStatement.getName()+") does not have a valid constructor.");
 
-            if (formattedCode.startsWith("#")) { // Commentary node
-                content = content.replace(data, "");
-            } else if (echoMatcher.find()) { // Echo pattern
-                final String expr = echoMatcher.group(1);
-                final Expression<?> expression = SkriptUtils.parseExpression(expr, null, event);
-                if (expression == null) {
-                    errors.add("Cannot understand this expression: '" + expr + "'");
-                    continue;
-                }
-                String value;
-                try {
-                    try {
-                        value = expression.isSingle() ? expression.getSingle(event).toString() :
-                                StringUtils.join(expression.getArray(event), ", ");
-                    } catch (Exception ex) {
-                        value = "<none>";
-                    }
-                } catch (NullPointerException ex) {
-                    value = "<none>";
-                }
-                content = content.replace(data, value);
+                final WebStatement.ParseResult parseResult = new WebStatement.ParseResult(code, content, data);
+                final WebStatement.LoadingResult result = statement.init(parseResult, event);
 
-            } else if (ifMatcher.find()) {
+                if (!result.success() && result.hasErrors()) {
+                    errors.addAll(Arrays.asList(result.getErrors()));
+                    continue core;
+                } else if (!result.success()) continue;
 
-                final String condStr = ifMatcher.group(1);
-                final String condName = ifMatcher.group(2);
-
-                final Condition condition = SkriptUtils.parseExpression(
-                        condStr, Skript.getConditions().iterator(),
-                        null, event);
-                if (condition == null) {
-                    errors.add("Can't understand this condition '"+condStr+"'");
-                    continue;
-                }
-
-                final Matcher endCondMatcher = endConditionPattern.matcher(originalContent);
-                if (!endCondMatcher.find()) {
-                    errors.add("Unable to find end of the '"+condName+"' condition.");
-                    continue;
-                }
-
-                final String codeBetween;
-                try {
-                    codeBetween = originalContent
-                            .split(Pattern.quote(data))[1]
-                            .split(Pattern.quote("{{//" + condName + "}}"))[0];
-                } catch (Exception ex) {
-                    continue;
-                }
-
-                final NonNullPair<List<String>, String> parseResult = parse(codeBetween, event, true);
-                errors.addAll(parseResult.getFirst());
-                final String codeInside = parseResult.getSecond();
-
-                if (condition.check(event)) {
-                    content = content.replace(data + codeBetween, codeInside);
-                } else {
-                    content = content.replace(data + codeBetween, "");
-                }
-
-            } else if (loopMatcher.find()) { // Start loop
-
-                final String expr = loopMatcher.group(2);
-                final String loopName = loopMatcher.group(3);
-
-                final Expression<?> expression = SkriptUtils.parseExpression(expr, null, event);
-                Object[] values;
-                if (expression == null) {
-                    values = parseVariableList(expr, event);
-                } else {
-                    if (expression.isSingle()) {
-                        errors.add("The '"+expr+"' return a single value and can therefore not be looped.");
-                        continue;
-                    }
-                    values = expression.getArray(event);
-                }
-                inLoop = true;
-                final Matcher endLoopMatcher = endLoopPattern.matcher(originalContent);
-                if (!endLoopMatcher.find()) {
-                    errors.add("Unable to find end of the '"+expr+"' loop.");
-                    continue;
-                }
-                final String codeBetween;
-                try {
-                    codeBetween = originalContent
-                            .split(Pattern.quote(data))[1]
-                            .split(Pattern.quote("{{/" + loopName + "}}"))[0];
-                } catch (Exception ex) {
-                    continue;
-                }
-
-                String codeInside = "";
-                for (Object value : values) {
-                    LoopValue.lastEntity = value;
-                    final NonNullPair<List<String>, String> parseResult = parse(codeBetween, event, true);
-                    errors.addAll(parseResult.getFirst());
-                    codeInside += parseResult.getSecond();
-                    LoopValue.lastEntity = null;
-                }
-                content = content.replace(data + codeBetween, codeInside);
-
-            } else {
-
-                if (formattedCode.startsWith("//")) {
-                    content = content.replace(data, "");
-                } else if (formattedCode.startsWith("/")) {
-                    inLoop = false;
-                    content = content.replace(data, "");
-                } else {
-                    final String value = parseVariable(formattedCode, event);
-                    content = content.replace(data, value);
-                }
-
+                final String representation = statement.convert(event);
+                System.out.println("representation: "+representation);
+                if (!result.disableReplace())
+                    content = content.replace(data, representation == null ? "" : representation);
+                continue core;
             }
+            errors.add("Unknown WebSK Statement: " + code);
         }
 
         return new NonNullPair<>(errors, content);
+    }
+
+    private @Nullable WebStatement construct(Class<? extends WebStatement> c) {
+        try {
+            return c.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private final Pattern SPECIAL_REGEX_CHARS = Pattern.compile("[{}()\\[\\].+*?^$\\\\|]");
