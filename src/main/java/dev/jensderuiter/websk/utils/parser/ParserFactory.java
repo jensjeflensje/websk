@@ -71,7 +71,6 @@ public class ParserFactory {
                 } else if (!result.success()) continue;
 
                 final String representation = statement.convert(event);
-                System.out.println("representation: "+representation);
                 if (!result.disableReplace())
                     content = content.replace(data, representation == null ? "" : representation);
                 continue core;
