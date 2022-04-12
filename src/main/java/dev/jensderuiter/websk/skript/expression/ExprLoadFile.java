@@ -80,7 +80,7 @@ public class ExprLoadFile extends SimpleExpression<String> {
                 return errorTemplate(fileNameObj, errors);
             }
 
-            final NonNullPair<List<String>, String> result = ParserFactory.get().parse(fileContents, event, false);
+            final NonNullPair<List<String>, String> result = ParserFactory.get().parse(fileContents, event);
             errors.addAll(result.getFirst());
 
             if (errors.isEmpty()) {
