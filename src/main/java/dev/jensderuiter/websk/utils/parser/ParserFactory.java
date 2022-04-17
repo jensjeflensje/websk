@@ -1,6 +1,7 @@
 package dev.jensderuiter.websk.utils.parser;
 
 import ch.njol.util.NonNullPair;
+import dev.jensderuiter.websk.skript.factory.ServerEvent;
 import dev.jensderuiter.websk.skript.type.statements.*;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
@@ -16,12 +17,12 @@ import java.util.regex.Pattern;
  */
 public class ParserFactory {
 
-    private final List<Class<? extends Statement>> registeredStatements;
+    private static final List<Class<? extends Statement>> registeredStatements;
 
-    private final Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
+    private final static Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
     private static final ParserFactory instance = new ParserFactory();
 
-    public ParserFactory() {
+    static {
         registeredStatements = new ArrayList<>();
         registeredStatements.add(ShowStatement.class);
         registeredStatements.add(ConditionStatement.class);
@@ -63,26 +64,32 @@ public class ParserFactory {
                 }
 
                 final String codeBetween;
+                final Matcher endSectionMatcher;
                 if (parsingResult.isSectionStatement()) {
                     final String endSectionName = parsingResult.getEndSectionName();
                     if (endSectionName == null)
                         throw new UnsupportedOperationException("One of the registered statement (" + cStatement.getName() + ") does not have a valid end section name.");
-                    final String endSectionPattern = Pattern.compile("\\{\\{/*" + endSectionName + "*}}", Pattern.DOTALL).pattern();
+                    final Pattern endSectionPattern = Pattern.compile("\\{\\{/("+endSectionName+"|/)}}", Pattern.DOTALL);
+                    endSectionMatcher = endSectionPattern.matcher(content);
+                    if (!endSectionMatcher.find()) {
+                        errors.add("Could not find end section for section statement: " + endSectionName);
+                        continue core;
+                    }
                     try {
-                        codeBetween = content
-                                .split(Pattern.quote(data))[1]
-                                .split(endSectionPattern)[0];
+                        final String temp = content.split(Pattern.quote(data))[1];
+                        codeBetween = temp.substring(0, temp.lastIndexOf("{{/" + endSectionMatcher.group(1) + "}}"));
                     } catch (Exception ex) {
-                        errors.add("Could not find end section for section statement: " + code);
+                        errors.add("Could not find end section for section statement: " + endSectionName);
                         continue core;
                     }
                 } else {
                     codeBetween = null;
+                    endSectionMatcher = null;
                 }
                 final String result = statement.parse(event, codeBetween);
                 final String replacement;
-                if (parsingResult.isSectionStatement())
-                    replacement = data + codeBetween + "{{/" + parsingResult.getEndSectionName() + "}}";
+                if (parsingResult.isSectionStatement() && endSectionMatcher != null)
+                    replacement = data + codeBetween + "{{/" + endSectionMatcher.group(1) + "}}";
                 else
                     replacement = data;
                 content = content.replace(replacement, result == null ? "" : result);
@@ -95,7 +102,7 @@ public class ParserFactory {
         return new NonNullPair<>(errors, content);
     }
 
-    private @Nullable Statement construct(Class<? extends Statement> c) {
+    private static @Nullable Statement construct(Class<? extends Statement> c) {
         try {
             return c.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {

@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 public class ConditionStatement implements Statement {
 
-    private final static Pattern conditionPattern = Pattern.compile("if (.+) -> (.+)");
+    private final static Pattern conditionPattern = Pattern.compile("if (.[^->]+)( -> (.+))?");
 
     private Condition condition;
 
@@ -25,7 +25,7 @@ public class ConditionStatement implements Statement {
         if (!matcher.matches())
             return null;
         final String rawCondition = matcher.group(1);
-        final String conditionName = matcher.group(2);
+        final String conditionName = matcher.group(3) == null ? "condition" : matcher.group(3);
 
         condition = SkriptUtils.parseExpression(rawCondition, Skript.getConditions().iterator(), null, event);
         if (condition == null)

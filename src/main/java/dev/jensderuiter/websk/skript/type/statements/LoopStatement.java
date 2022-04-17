@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 public class LoopStatement implements Statement {
 
-    private final static Pattern loopPattern = Pattern.compile("loop (.+) -> (.+)");
+    private final static Pattern loopPattern = Pattern.compile("loop (.[^->]+)( -> (.+))?");
 
     private Expression<?> expression;
     private String loopName;
@@ -26,7 +26,7 @@ public class LoopStatement implements Statement {
         if (!matcher.matches())
             return null;
         final String rawLoop = matcher.group(1);
-        final String loopName = matcher.group(2);
+        final String loopName = matcher.group(3) == null ? "loop" : matcher.group(3);
         this.loopName = loopName;
         expression = SkriptUtils.parseExpression(rawLoop, null, event);
         if (expression == null)
