@@ -13,7 +13,7 @@ public class ExecuteStatement implements Statement {
     private Effect effect;
 
     @Override
-    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser) {
+    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser, @Nullable String preCodeBetween) {
         if (!code.startsWith("execute "))
             return null;
         final String rawEffect = code.substring(8);

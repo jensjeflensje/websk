@@ -15,7 +15,7 @@ public class ShowStatement implements Statement{
     private Expression<?> expression;
 
     @Override
-    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser) {
+    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser, @Nullable String preCodeBetween) {
         if (!code.startsWith("show "))
             return null;
         final String rawExpression = code.substring(5);

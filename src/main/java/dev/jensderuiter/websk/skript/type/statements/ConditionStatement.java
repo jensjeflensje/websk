@@ -18,14 +18,17 @@ public class ConditionStatement implements Statement {
     private final static Pattern conditionPattern = Pattern.compile("if (.[^->]+)( -> (.+))?");
 
     private Condition condition;
+    private ParserFactory parser;
+    private @Nullable ElseStatement linkedElseStatement;
 
     @Override
-    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser) {
+    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser, @Nullable String preCodeBetween) {
         final Matcher matcher = conditionPattern.matcher(code);
         if (!matcher.matches())
             return null;
         final String rawCondition = matcher.group(1);
         final String conditionName = matcher.group(3) == null ? "condition" : matcher.group(3);
+        this.parser = parser;
 
         condition = SkriptUtils.parseExpression(rawCondition, Skript.getConditions().iterator(), null, event);
         if (condition == null)
@@ -39,6 +42,17 @@ public class ConditionStatement implements Statement {
         if (codeBetween == null)
             throw new UnsupportedOperationException("Code between is null in a section statement");
         final NonNullPair<List<String>, String> parsed = new ParserFactory().parse(codeBetween, event);
-        return condition.check(event) ? parsed.getSecond() : null;
+        final ElseStatement elseStatement = parser.getLastElseAndClear();
+        return condition.check(event) ? parsed.getSecond() : (
+                elseStatement == null ? null : elseStatement.getCodeBetween()
+        );
+    }
+
+    public void setLinkedElseStatement(@Nullable ElseStatement linkedElseStatement) {
+        this.linkedElseStatement = linkedElseStatement;
+    }
+
+    public @Nullable ElseStatement getLinkedElseStatement() {
+        return linkedElseStatement;
     }
 }

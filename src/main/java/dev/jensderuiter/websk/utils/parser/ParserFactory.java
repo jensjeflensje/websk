@@ -31,6 +31,9 @@ public class ParserFactory {
         registeredStatements.add(ExecuteStatement.class);
     }
 
+    private ConditionStatement lastCondition;
+    private ElseStatement lastElse;
+
     public static ParserFactory get() {
         return instance;
     }
@@ -57,7 +60,15 @@ public class ParserFactory {
                 if (statement == null)
                     throw new UnsupportedOperationException("One of the registered statement (" + cStatement.getName() + ") does not have a valid constructor.");
 
-                final ParsingResult parsingResult = statement.init(code, event, this);
+                final String preCodeBetween;
+                if (statement.getDefaultEndSectionName() != null) {
+                    final String temp = content.split(Pattern.quote(data))[1];
+                    preCodeBetween = temp.substring(0, temp.lastIndexOf("{{/" + statement.getDefaultEndSectionName() + "}}"));
+                } else {
+                    preCodeBetween = null;
+                }
+
+                final ParsingResult parsingResult = statement.init(code, event, this, preCodeBetween);
                 if (parsingResult == null)
                     continue;
                 if (!parsingResult.isSuccess()) {
@@ -96,6 +107,10 @@ public class ParserFactory {
                     replacement = data;
                 content = content.replace(replacement, result == null ? "" : result);
                 codeMatcher = codePattern.matcher(content);
+                if (statement instanceof ConditionStatement)
+                    lastCondition = (ConditionStatement) statement;
+                if (statement instanceof ElseStatement)
+                    lastElse = (ElseStatement) statement;
                 continue core;
             }
             errors.add("Unknown WebSK Statement: " + code);
@@ -111,5 +126,17 @@ public class ParserFactory {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public @Nullable ConditionStatement getLastConditionAndClear() {
+        final ConditionStatement lastCondition = this.lastCondition;
+        this.lastCondition = null;
+        return lastCondition;
+    }
+
+    public @Nullable ElseStatement getLastElseAndClear() {
+        final ElseStatement lastElse = this.lastElse;
+        this.lastElse = null;
+        return lastElse;
     }
 }

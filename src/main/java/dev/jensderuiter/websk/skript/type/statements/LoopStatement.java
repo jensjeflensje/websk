@@ -21,7 +21,7 @@ public class LoopStatement implements Statement {
     private String loopName;
 
     @Override
-    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser) {
+    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser, @Nullable String preCodeBetween) {
         final Matcher matcher = loopPattern.matcher(code);
         if (!matcher.matches())
             return null;

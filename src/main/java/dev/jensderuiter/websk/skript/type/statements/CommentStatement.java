@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class CommentStatement implements Statement {
     @Override
-    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser) {
+    public @Nullable ParsingResult init(String code, Event event, @NotNull ParserFactory parser, @Nullable String preCodeBetween) {
         return code.startsWith("#") ? new ParsingResult() : null;
     }
 
