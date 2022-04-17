@@ -27,6 +27,8 @@ public class ParserFactory {
         registeredStatements.add(ShowStatement.class);
         registeredStatements.add(ConditionStatement.class);
         registeredStatements.add(LoopStatement.class);
+        registeredStatements.add(CommentStatement.class);
+        registeredStatements.add(ExecuteStatement.class);
     }
 
     public static ParserFactory get() {
