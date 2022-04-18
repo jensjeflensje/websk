@@ -8,6 +8,9 @@ import java.util.List;
 
 public class ParsingResult {
 
+    public static final ParsingResult SUCCESS = new ParsingResult();
+    public static final ParsingResult UNKNOWN = null;
+
     private final List<String> errors;
     private final boolean success;
     private final boolean sectionStatement;

@@ -3,11 +3,15 @@ package dev.jensderuiter.websk.utils.parser;
 import ch.njol.util.NonNullPair;
 import dev.jensderuiter.websk.skript.factory.ServerEvent;
 import dev.jensderuiter.websk.skript.type.statements.*;
+import dev.jensderuiter.websk.skript.type.statements.blocks.Block;
+import dev.jensderuiter.websk.skript.type.statements.blocks.DefineBlock;
+import dev.jensderuiter.websk.skript.type.statements.blocks.ShowBlock;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,10 +33,14 @@ public class ParserFactory {
         registeredStatements.add(LoopStatement.class);
         registeredStatements.add(CommentStatement.class);
         registeredStatements.add(ExecuteStatement.class);
+        registeredStatements.add(DefineBlock.class);
+        registeredStatements.add(ShowBlock.class);
     }
 
     private ConditionStatement lastCondition;
     private ElseStatement lastElse;
+
+    private static final HashMap<String, Block> definedBlocks = new HashMap<>();
 
     public static ParserFactory get() {
         return instance;
@@ -126,6 +134,28 @@ public class ParserFactory {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private static String parseBlockName(String name) {
+        return name.startsWith("\"") && name.endsWith("\"") ? name.substring(1, name.length() - 1) : name;
+    }
+
+    public static boolean hasBlock(String name) {
+        return definedBlocks.containsKey(parseBlockName(name));
+    }
+
+    public static void clearBlocks() {
+        definedBlocks.clear();
+    }
+
+    public static void addBlock(String name, Block block) {
+        if (hasBlock(name))
+            return;
+        definedBlocks.put(parseBlockName(name), block);
+    }
+
+    public static @Nullable Block getBlock(String name) {
+        return definedBlocks.getOrDefault(parseBlockName(name), null);
     }
 
     public @Nullable ConditionStatement getLastConditionAndClear() {
