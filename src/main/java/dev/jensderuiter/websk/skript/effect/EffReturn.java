@@ -18,7 +18,7 @@ public class EffReturn extends Effect {
     static {
         Skript.registerEffect(
                 EffReturn.class,
-                "return %string% [with [the] code %-number%] [with [the] [header] %-webheaders%]"
+                "return [the] [template] [file] %string% [with [the] code %-number%] [with [the] [header] %-webheaders%]"
         );
     }
 
