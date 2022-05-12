@@ -1,12 +1,12 @@
 package dev.jensderuiter.websk.skript.type.statements.blocks;
 
 import ch.njol.skript.lang.Expression;
+import dev.jensderuiter.websk.skript.expression.ExprArgument;
 import dev.jensderuiter.websk.utils.SkriptUtils;
 import dev.jensderuiter.websk.utils.parser.ParserFactory;
 import org.bukkit.event.Event;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.LinkedList;
 
 public class Block {
 
@@ -26,23 +26,17 @@ public class Block {
         return rawContent;
     }
 
-    public String parse(Event event, String... arguments) {
-        String parsed = rawContent;
-        int i = 0;
-        for (String argument : arguments) {
-            i++;
-            if (argument.startsWith("\\")) {
-                parsed = parsed.replace("%" + i, argument.substring(1));
-            } else {
-                final Expression<?> expression = SkriptUtils.parseExpression(argument, null, event);
-                final String realValue = expression == null ? argument : expression.getSingle(event).toString();
-                parsed = parsed.replace("%" + i, realValue);
-            }
+    public String parse(Event event, String... rawArgs) {
+        final LinkedList<Object> args = new LinkedList<>();
+        for (String rawArg : rawArgs)
+        {
+            final Expression<?> parsed = SkriptUtils.parseExpression(
+                    rawArg.startsWith("\"") && rawArg.endsWith("\"") ? rawArg.substring(1, rawArg.length() - 1) : rawArg,
+                    null, event);
+            args.add(parsed == null ? rawArg : parsed.getSingle(event));
         }
-        final Matcher remainingMatcher = Pattern.compile("%\\d+").matcher(parsed);
-        while (remainingMatcher.find())
-            parsed = parsed.replace(remainingMatcher.group(), "<undefined argument>");
-        return new ParserFactory().parse(parsed, event).getSecond();
+        ExprArgument.currentArguments = args;
+        return new ParserFactory().parse(getRawContent(), event).getSecond();
     }
 
 }
