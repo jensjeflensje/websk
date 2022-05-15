@@ -31,8 +31,8 @@ public class ExprLoadFile extends SimpleExpression<String> {
     final Pattern pattern = Pattern.compile("show (.+)");
 
     static {
-        final String pattern = ReflectionUtils.classExist("info.itsthesky.SkImage.SkImage") ? "template file" : "file";
-        Skript.registerExpression(ExprLoadFile.class, String.class, ExpressionType.COMBINED, "[the] "+pattern+" %string%");
+        final String pattern = ReflectionUtils.classExist("info.itsthesky.SkImage.SkImage") ? "template [file]" : "[template] file";
+        Skript.registerExpression(ExprLoadFile.class, String.class, ExpressionType.COMBINED, "[the] " + pattern + " %string%");
     }
 
     private Expression<String> fileName;
