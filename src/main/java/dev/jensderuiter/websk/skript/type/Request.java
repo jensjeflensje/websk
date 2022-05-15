@@ -15,7 +15,7 @@ public class Request {
     public String method;
 
     public Request(String queryParams, String ip, String cookies, String method, String body) {
-        this.id = Objects.hash(cookies, queryParams, ip);;
+        this.id = Objects.hash(cookies, queryParams, ip);
         this.params = queryToMap(queryParams);
         this.ip = ip;
         this.method = method;

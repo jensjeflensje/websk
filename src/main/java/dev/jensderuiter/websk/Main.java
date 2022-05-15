@@ -48,6 +48,9 @@ public final class Main extends JavaPlugin {
             case GREATER:
                 getLogger().warning("Detected a test version of WebSK. Please report bugs on our GitHub.");
                 break;
+            default:
+                getLogger().warning("Unexpected error with the updater!")
+                break;
         }
         
         // This creates config.yml and all other websk folders
