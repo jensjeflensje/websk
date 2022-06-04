@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: SkUnity Page
+    url: https://forums.skunity.com/resources/websk.1372/
+    about: Read information about our plugin, and read reviews
+  - name: SkUnity Docs
+    url: https://docs.skunity.com/syntax/search/addon:websk
+    about: Check out expressions and effects
+  - name: Temporary Docs
+    url: https://files.jederu.nl/websk.html
+    about: Read our temporary docs
+  - name: Discord Server
+    url: https://discord.gg/u7FG5FtHHw
+    about: Get support at our discord server
