@@ -5,25 +5,19 @@ import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionType;
 import ch.njol.skript.lang.SkriptParser;
 import ch.njol.skript.lang.util.SimpleExpression;
-import ch.njol.skript.variables.Variables;
 import ch.njol.util.Kleenean;
 import ch.njol.util.NonNullPair;
-import ch.njol.util.StringUtils;
-import com.github.mustachejava.*;
-import com.github.mustachejava.codes.IterableCode;
-import com.github.mustachejava.codes.NotIterableCode;
-import com.github.mustachejava.codes.ValueCode;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import dev.jensderuiter.websk.utils.ReflectionUtils;
-import dev.jensderuiter.websk.utils.SkriptUtils;
 import dev.jensderuiter.websk.utils.parser.ParserFactory;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
-import java.util.*;
-import java.util.regex.Matcher;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class ExprLoadFile extends SimpleExpression<String> {
@@ -80,8 +74,9 @@ public class ExprLoadFile extends SimpleExpression<String> {
                 return errorTemplate(fileNameObj, errors);
             }
 
-            final NonNullPair<List<String>, String> result = ParserFactory.get().parse(fileContents, event, false);
+            final NonNullPair<List<String>, String> result = ParserFactory.get().parse(fileContents, event);
             errors.addAll(result.getFirst());
+            ParserFactory.clearBlocks();
 
             if (errors.isEmpty()) {
                 return new String[]{result.getSecond()};

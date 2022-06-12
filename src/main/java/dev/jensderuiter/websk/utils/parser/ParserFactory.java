@@ -1,18 +1,18 @@
 package dev.jensderuiter.websk.utils.parser;
 
-import ch.njol.skript.Skript;
-import ch.njol.skript.expressions.ExprLoopValue;
-import ch.njol.skript.lang.Condition;
-import ch.njol.skript.lang.Expression;
-import ch.njol.skript.variables.Variables;
 import ch.njol.util.NonNullPair;
-import ch.njol.util.StringUtils;
-import dev.jensderuiter.websk.skript.expression.LoopValue;
-import dev.jensderuiter.websk.utils.SkriptUtils;
+import dev.jensderuiter.websk.skript.factory.ServerEvent;
+import dev.jensderuiter.websk.skript.type.statements.*;
+import dev.jensderuiter.websk.skript.type.statements.blocks.Block;
+import dev.jensderuiter.websk.skript.type.statements.blocks.DefineBlock;
+import dev.jensderuiter.websk.skript.type.statements.blocks.ShowBlock;
 import org.bukkit.event.Event;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,184 +21,152 @@ import java.util.regex.Pattern;
  */
 public class ParserFactory {
 
-    private final Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
-    private final Pattern echoPattern = Pattern.compile("show (.+)");
-    private final Pattern forPattern = Pattern.compile("(for|loop) (.+) -> (.+)");
-    private final Pattern ifPattern = Pattern.compile("if (.+) -> (.+)");
-    private final Pattern endLoopPattern = Pattern.compile("\\{\\{\\/([^}]+)}}");
-    private final Pattern endConditionPattern = Pattern.compile("\\{\\{\\/{2}([^}]+)}}");
+    private static final List<Class<? extends Statement>> registeredStatements;
+
+    private final static Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
     private static final ParserFactory instance = new ParserFactory();
+
+    static {
+        registeredStatements = new ArrayList<>();
+        registeredStatements.add(ShowStatement.class);
+        registeredStatements.add(ConditionStatement.class);
+        registeredStatements.add(LoopStatement.class);
+        registeredStatements.add(CommentStatement.class);
+        registeredStatements.add(ExecuteStatement.class);
+        registeredStatements.add(DefineBlock.class);
+        registeredStatements.add(ShowBlock.class);
+    }
+
+    private ConditionStatement lastCondition;
+    private ElseStatement lastElse;
+
+    private static final HashMap<String, Block> definedBlocks = new HashMap<>();
 
     public static ParserFactory get() {
         return instance;
     }
 
-    private boolean inLoop = false;
-    public NonNullPair<List<String>, String> parse(String content, Event event, boolean subGroup) {
+    public String content;
+    public List<String> errors;
+    public Matcher codeMatcher;
+
+    public NonNullPair<List<String>, String> parse(String raw, Event event) {
+        content = raw;
+        errors = new ArrayList<>();
+
         if (content.isEmpty())
             return new NonNullPair<>(new ArrayList<>(), "");
 
-      
-        final String originalContent = content;
-        final List<String> errors = new ArrayList<>();
+        codeMatcher = codePattern.matcher(content);
 
-        final Matcher codeMatcher = codePattern.matcher(content);
-
-        while (codeMatcher.find()) {
+        core: while (codeMatcher.find()) {
             final String data = codeMatcher.group();
             final String code = codeMatcher.group(1);
-            final String formattedCode = code.replaceAll("\\t", "").replaceAll( " {4}", "");
+            for (Class<? extends Statement> cStatement : registeredStatements) {
 
-            // Matchers
-            final Matcher echoMatcher = echoPattern.matcher(formattedCode);
-            final Matcher loopMatcher = forPattern.matcher(formattedCode);
-            final Matcher ifMatcher = ifPattern.matcher(formattedCode);
+                final Statement statement = construct(cStatement);
+                if (statement == null)
+                    throw new UnsupportedOperationException("One of the registered statement (" + cStatement.getName() + ") does not have a valid constructor.");
 
-            if (formattedCode.startsWith("#")) { // Commentary node
-                content = content.replace(data, "");
-            } else if (echoMatcher.find()) { // Echo pattern
-                final String expr = echoMatcher.group(1);
-                final Expression<?> expression = SkriptUtils.parseExpression(expr, null, event);
-                if (expression == null) {
-                    errors.add("Cannot understand this expression: '" + expr + "'");
-                    continue;
+                final String preCodeBetween;
+                if (statement.getDefaultEndSectionName() != null) {
+                    final String temp = content.split(Pattern.quote(data))[1];
+                    preCodeBetween = temp.substring(0, temp.lastIndexOf("{{/" + statement.getDefaultEndSectionName() + "}}"));
+                } else {
+                    preCodeBetween = null;
                 }
-                String value;
-                try {
+
+                final ParsingResult parsingResult = statement.init(code, event, this, preCodeBetween);
+                if (parsingResult == null)
+                    continue;
+                if (!parsingResult.isSuccess()) {
+                    errors.addAll(parsingResult.getErrors());
+                    continue core;
+                }
+
+                final String codeBetween;
+                final Matcher endSectionMatcher;
+                if (parsingResult.isSectionStatement()) {
+                    final String endSectionName = parsingResult.getEndSectionName();
+                    if (endSectionName == null)
+                        throw new UnsupportedOperationException("One of the registered statement (" + cStatement.getName() + ") does not have a valid end section name.");
+                    final Pattern endSectionPattern = Pattern.compile("\\{\\{/("+endSectionName+"|/)}}", Pattern.DOTALL);
+                    endSectionMatcher = endSectionPattern.matcher(content);
+                    if (!endSectionMatcher.find()) {
+                        errors.add("Could not find end section for section statement: " + endSectionName);
+                        continue core;
+                    }
                     try {
-                        value = expression.isSingle() ? expression.getSingle(event).toString() :
-                                StringUtils.join(expression.getArray(event), ", ");
+                        final String temp = content.split(Pattern.quote(data))[1];
+                        codeBetween = temp.substring(0, temp.lastIndexOf("{{/" + endSectionMatcher.group(1) + "}}"));
                     } catch (Exception ex) {
-                        value = "<none>";
+                        errors.add("Could not find end section for section statement: " + endSectionName);
+                        continue core;
                     }
-                } catch (NullPointerException ex) {
-                    value = "<none>";
-                }
-                content = content.replace(data, value);
-
-            } else if (ifMatcher.find()) {
-
-                final String condStr = ifMatcher.group(1);
-                final String condName = ifMatcher.group(2);
-
-                final Condition condition = SkriptUtils.parseExpression(
-                        condStr, Skript.getConditions().iterator(),
-                        null, event);
-                if (condition == null) {
-                    errors.add("Can't understand this condition '"+condStr+"'");
-                    continue;
-                }
-
-                final Matcher endCondMatcher = endConditionPattern.matcher(originalContent);
-                if (!endCondMatcher.find()) {
-                    errors.add("Unable to find end of the '"+condName+"' condition.");
-                    continue;
-                }
-
-                final String codeBetween;
-                try {
-                    codeBetween = originalContent
-                            .split(Pattern.quote(data))[1]
-                            .split(Pattern.quote("{{//" + condName + "}}"))[0];
-                } catch (Exception ex) {
-                    continue;
-                }
-
-                final NonNullPair<List<String>, String> parseResult = parse(codeBetween, event, true);
-                errors.addAll(parseResult.getFirst());
-                final String codeInside = parseResult.getSecond();
-
-                if (condition.check(event)) {
-                    content = content.replace(data + codeBetween, codeInside);
                 } else {
-                    content = content.replace(data + codeBetween, "");
+                    codeBetween = null;
+                    endSectionMatcher = null;
                 }
-
-            } else if (loopMatcher.find()) { // Start loop
-
-                final String expr = loopMatcher.group(2);
-                final String loopName = loopMatcher.group(3);
-
-                final Expression<?> expression = SkriptUtils.parseExpression(expr, null, event);
-                Object[] values;
-                if (expression == null) {
-                    values = parseVariableList(expr, event);
-                } else {
-                    if (expression.isSingle()) {
-                        errors.add("The '"+expr+"' return a single value and can therefore not be looped.");
-                        continue;
-                    }
-                    values = expression.getArray(event);
-                }
-                inLoop = true;
-                final Matcher endLoopMatcher = endLoopPattern.matcher(originalContent);
-                if (!endLoopMatcher.find()) {
-                    errors.add("Unable to find end of the '"+expr+"' loop.");
-                    continue;
-                }
-                final String codeBetween;
-                try {
-                    codeBetween = originalContent
-                            .split(Pattern.quote(data))[1]
-                            .split(Pattern.quote("{{/" + loopName + "}}"))[0];
-                } catch (Exception ex) {
-                    continue;
-                }
-
-                String codeInside = "";
-                for (Object value : values) {
-                    LoopValue.lastEntity = value;
-                    final NonNullPair<List<String>, String> parseResult = parse(codeBetween, event, true);
-                    errors.addAll(parseResult.getFirst());
-                    codeInside += parseResult.getSecond();
-                    LoopValue.lastEntity = null;
-                }
-                content = content.replace(data + codeBetween, codeInside);
-
-            } else {
-
-                if (formattedCode.startsWith("//")) {
-                    content = content.replace(data, "");
-                } else if (formattedCode.startsWith("/")) {
-                    inLoop = false;
-                    content = content.replace(data, "");
-                } else {
-                    final String value = parseVariable(formattedCode, event);
-                    content = content.replace(data, value);
-                }
-
+                final String result = statement.parse(event, codeBetween);
+                final String replacement;
+                if (parsingResult.isSectionStatement() && endSectionMatcher != null)
+                    replacement = data + codeBetween + "{{/" + endSectionMatcher.group(1) + "}}";
+                else
+                    replacement = data;
+                content = content.replace(replacement, result == null ? "" : result);
+                codeMatcher = codePattern.matcher(content);
+                if (statement instanceof ConditionStatement)
+                    lastCondition = (ConditionStatement) statement;
+                if (statement instanceof ElseStatement)
+                    lastElse = (ElseStatement) statement;
+                continue core;
             }
+            errors.add("Unknown WebSK Statement: " + code);
         }
 
         return new NonNullPair<>(errors, content);
     }
 
-    private final Pattern SPECIAL_REGEX_CHARS = Pattern.compile("[{}()\\[\\].+*?^$\\\\|]");
-    public String escape(String str) {
-        return SPECIAL_REGEX_CHARS.matcher(str).replaceAll("\\\\$0");
-    }
-
-    public Object[] parseVariableList(String varName, Event event) {
-        final Object value = Variables.getVariable(varName, event, true);
-        if (!(value instanceof Map))
-            return new Object[0];
-        return ((Map<?, ?>) value).values().toArray();
-    }
-
-    public String parseVariable(String varName, Event event) {
-        final Object value = Variables.getVariable(varName, event, true);
-        Object str;
+    private static @Nullable Statement construct(Class<? extends Statement> c) {
         try {
-            str = ((Map<?, ?>) value)
-                    .values()
-                    .stream()
-                    .map(Object::toString)
-                    .toArray(String[]::new);
-        } catch (ClassCastException ex) {
-            str = value.toString();
-        } catch (NullPointerException ex) {
-            str = "<none>";
+            return c.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
         }
-        return str.toString();
+        return null;
+    }
+
+    private static String parseBlockName(String name) {
+        return name.startsWith("\"") && name.endsWith("\"") ? name.substring(1, name.length() - 1) : name;
+    }
+
+    public static boolean hasBlock(String name) {
+        return definedBlocks.containsKey(parseBlockName(name));
+    }
+
+    public static void clearBlocks() {
+        definedBlocks.clear();
+    }
+
+    public static void addBlock(String name, Block block) {
+        if (hasBlock(name))
+            return;
+        definedBlocks.put(parseBlockName(name), block);
+    }
+
+    public static @Nullable Block getBlock(String name) {
+        return definedBlocks.getOrDefault(parseBlockName(name), null);
+    }
+
+    public @Nullable ConditionStatement getLastConditionAndClear() {
+        final ConditionStatement lastCondition = this.lastCondition;
+        this.lastCondition = null;
+        return lastCondition;
+    }
+
+    public @Nullable ElseStatement getLastElseAndClear() {
+        final ElseStatement lastElse = this.lastElse;
+        this.lastElse = null;
+        return lastElse;
     }
 }

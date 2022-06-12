@@ -7,27 +7,34 @@ import ch.njol.skript.lang.SkriptParser;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.util.Kleenean;
 import dev.jensderuiter.websk.skript.factory.ServerEvent;
-import dev.jensderuiter.websk.skript.type.Request;
 import dev.jensderuiter.websk.utils.adapter.SkriptAdapter;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class LoopValue extends SimpleExpression<Object> {
+import java.util.HashMap;
 
-    public static Object lastEntity;
+public class LoopValue extends SimpleExpression<Object> {
 
     static {
         Skript.registerExpression(
                 LoopValue.class,
                 Object.class,
                 ExpressionType.SIMPLE,
-                "[the] loop( |-)entity"
+                "[the] loop( |-)entity [of [loop] %-string%]"
         );
     }
 
+    private Expression<String> loopName;
+
+    public static HashMap<String, Object> entities = new HashMap<>();
+    public static String lastLoop;
+
     @Override
     protected Object @NotNull [] get(@NotNull Event event) {
+        if (loopName != null && loopName.getSingle(event) != null)
+            lastLoop = loopName.getSingle(event);
+        final Object lastEntity = entities.getOrDefault(lastLoop, null);
         return lastEntity == null ? new Object[0] : new Object[] {lastEntity};
     }
 
@@ -48,6 +55,7 @@ public class LoopValue extends SimpleExpression<Object> {
 
     @Override
     public boolean init(Expression<?> @NotNull [] expressions, int i, @NotNull Kleenean kleenean, SkriptParser.@NotNull ParseResult parseResult) {
+        loopName = (Expression<String>) expressions[0];
         return SkriptAdapter.getInstance().isCurrentEvents(ServerEvent.class);
     }
 }
