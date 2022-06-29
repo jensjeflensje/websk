@@ -27,12 +27,14 @@ public class ServerFactory {
         if (!webValidator.validate(node))
             return null;
 
+        final String unparsedPort =  ScriptLoader.replaceOptions(node.get("port", ""));
         final Integer port;
+        
         SkriptLogger.setNode(node.get("port")); // Keep the error on the right node
         try {
-            port = Integer.parseInt(node.get("port", "null"));
+            port = Integer.parseInt(unparsedPort);
         } catch (final NumberFormatException ex) {
-            Skript.error("Unexpected value for port, should be a valid integer bug got: " + node.get("port", "null"));
+            Skript.error("Unexpected value for port, should be a valid integer but got: " + unparsedPort);
             return null;
         }
 
