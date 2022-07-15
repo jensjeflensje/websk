@@ -59,8 +59,6 @@ public class Webserver extends Thread {
                     String fileName = httpExchange.getRequestURI().toString().replaceFirst("/files/", "");
                     String path = Main.getInstance().getConfig().getString("static-server-path") + fileName;
                     List<String> protectedFiles = Main.getInstance().getConfig().getStringList("protected-files");
-                    System.out.println(protectedFiles);
-                    System.out.println(fileName);
                     if ( protectedFiles.contains(fileName) || !Files.exists(Paths.get(path))) {
                         if (!Files.exists(Paths.get(path))) Skript.warning("[WebSK] File '" + path + "' doesn't exist!");
                         try {
