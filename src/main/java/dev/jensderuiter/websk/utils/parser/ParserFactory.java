@@ -23,7 +23,7 @@ public class ParserFactory {
 
     private static final List<Class<? extends Statement>> registeredStatements;
 
-    private final static Pattern codePattern = Pattern.compile("\\{\\{([^}]+)}}", Pattern.DOTALL);
+    private final static Pattern codePattern = Pattern.compile("\\{\\{(.+)\\}\\}");
     private static final ParserFactory instance = new ParserFactory();
 
     static {
