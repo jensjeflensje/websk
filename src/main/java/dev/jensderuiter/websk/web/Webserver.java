@@ -74,9 +74,6 @@ public class Webserver extends Thread {
                     }
                     
                     File file = new File(path);
-                    Headers respHeaders = httpExchange.getResponseHeaders();
-                    respHeaders.clear();
-                    respHeaders.add( "Content-Type", "text/html; charset=utf-8" ); // Use UTF-8 by default
                     try {
                         httpExchange.sendResponseHeaders(200, file.length());
                         OutputStream out = httpExchange.getResponseBody();
