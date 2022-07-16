@@ -50,6 +50,11 @@ public final class Main extends JavaPlugin {
                 break;
         }
         
+        if ("1.2.1" == getDescription().getVersion() &&  (state ==  PluginUpdater.UpdateState.LOWER)) {
+            getLogger().warning("In newest WebSK version, file config.yml is changed!");
+            getLogger().warning("Please remove your current config.yml, and restart server - new file will be created automatically!");
+        }
+        
         // This creates config.yml and all other websk folders
         this.saveDefaultConfig();
 

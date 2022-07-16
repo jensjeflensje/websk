@@ -22,10 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import dev.jensderuiter.websk.Main;
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
 
 public final class SkriptUtils {
 
-    private static final Pattern varPattern = Pattern.compile("%[\\w-_:*]+%");
+    private static final Pattern varPattern = Pattern.compile("\\{([\\w-_:*@]+)\\}");
 
     public static Expression<?> parseExpression(
             String expr,
@@ -53,24 +55,24 @@ public final class SkriptUtils {
             ParseLogHandler log = SkriptLogger.startParseLogHandler();
 
             final Matcher varMatcher = varPattern.matcher(expr);
-            final boolean onlyVariable = expr.startsWith("\"%") && expr.endsWith("%\"");
+            final boolean onlyVariable = expr.startsWith("{") && expr.endsWith("}");
 
             final T var5;
             try {
-
                 String mainContent = null;
                 while (varMatcher.find()) {
-                    final String varName = varMatcher.group(0).replaceAll("%", "");
+                    final String varName = varMatcher.group(1);
                     final Object value = Variables.getVariable(varName.replaceFirst("_", ""),
                             event, varName.startsWith("_"));
-                    String content;
+                    String content = ScriptLoader.replaceOptions(varMatcher.group(0));
                     try {
                         content = StringUtils.join(((Map<?, ?>) value).values(), ", ");
                     } catch (ClassCastException ex) {
                         content = value.toString();
                     } catch (NullPointerException ex) {
-                        content = "<none>";
                     }
+                    if (content.equalsIgnoreCase(varMatcher.group(0)))
+                        content = escapeHtml(Main.getInstance().getConfig().getString("default-value"));
                     mainContent = content;
                     expr = replaceGroup(varPattern.toString(),
                             expr, 0, content);

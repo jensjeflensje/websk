@@ -16,8 +16,10 @@ import java.util.regex.Pattern;
 public class LoopStatement implements Statement {
 
     private final static Pattern loopPattern = Pattern.compile("loop (.[^->]+)( -> (.+))?");
+    private final static Pattern listPattern = Pattern.compile("\\{(.+)::\\*\\}");
 
     private Expression<?> expression;
+    private Object[] values;
     private String loopName;
 
     @Override
@@ -27,12 +29,20 @@ public class LoopStatement implements Statement {
             return null;
         final String rawLoop = matcher.group(1);
         final String loopName = matcher.group(3) == null ? "loop" : matcher.group(3);
+        final Matcher listMatcher = listPattern.matcher(rawLoop);
         this.loopName = loopName;
         expression = SkriptUtils.parseExpression(rawLoop, null, event);
         if (expression == null)
             return new ParsingResult(null, "Can't understand this expression: " + rawLoop);
-        if (expression.isSingle())
-            return new ParsingResult(null, "This expression is not single, and therefore cannot be looped: " + rawLoop);
+        
+        if (listMatcher.matches()) {
+            values = expression.getSingle(event).toString().split(", ");  
+        } else {
+            if (expression.isSingle())
+                return new ParsingResult(null, "This expression is single, and therefore cannot be looped: " + rawLoop);
+            values = expression.getArray(event);
+        }
+        
 
         return new ParsingResult(loopName);
     }
@@ -41,7 +51,6 @@ public class LoopStatement implements Statement {
     public @Nullable String parse(@NotNull Event event, @Nullable String codeBetween) {
         if (codeBetween == null)
             throw new UnsupportedOperationException("Code between is null in a section statement");
-        final Object[] values = expression.getArray(event);
         if (values.length == 0)
             return null;
         final StringBuilder builder = new StringBuilder();
