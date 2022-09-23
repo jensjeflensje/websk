@@ -47,6 +47,7 @@ public class Webserver extends Thread {
     public void setStringContext(final ServerObject object) {
         try {
             innerServer.removeContext("/");
+            innerServer.removeContext("/files/");
         } catch (IllegalArgumentException ignored) {
         }
         
