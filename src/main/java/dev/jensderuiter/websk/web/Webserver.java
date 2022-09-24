@@ -137,6 +137,13 @@ public class Webserver extends Thread {
                         respHeaders.add(header.getKey(), header.getValue());
                 }
                 try {
+                    if (httpExchange.getRequestMethod().equals("HEAD")) {
+                        respHeaders.add("Transfer-encoding", "chunked");
+                        httpExchange.getRequestBody().close();
+                        httpExchange.sendResponseHeaders(200, -1);
+                        return;
+                    }
+                    
                     httpExchange.sendResponseHeaders(code.intValue(), response.length);
                     OutputStream out = httpExchange.getResponseBody();
                     out.write(response);
