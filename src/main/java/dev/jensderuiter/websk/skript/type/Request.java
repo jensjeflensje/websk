@@ -12,6 +12,7 @@ public class Request {
     public Map<String, String> formParams;
     public Map<String, String> cookies = new HashMap<>();
     public String ip;
+    public String body;
     public String method;
 
     public Request(String queryParams, String ip, String cookies, String method, String body) {
@@ -19,6 +20,7 @@ public class Request {
         this.params = queryToMap(queryParams);
         this.ip = ip;
         this.method = method;
+        this.body = body;
         this.formParams = queryToMap(body);
         for (String cookie : cookies.split(";")) {
             cookie = cookie.trim();
