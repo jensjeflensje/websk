@@ -9,7 +9,6 @@ import dev.jensderuiter.websk.utils.adapter.SkriptV2_3;
 import dev.jensderuiter.websk.utils.adapter.SkriptV2_6;
 import dev.jensderuiter.websk.web.Webserver;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.configuration.file.FileConfiguration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,7 +17,6 @@ import java.io.IOException;
 
 public final class Main extends JavaPlugin {
 
-    private SkriptAddon addon;
     private static SkriptAdapter skriptAdapter;
     public static Webserver webserver = null;
     public static boolean use26;
@@ -26,7 +24,7 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        addon = Skript.registerAddon(this);
+        SkriptAddon addon = Skript.registerAddon(this);
         instance = this;
         try {
             addon.loadClasses("dev.jensderuiter.websk", "skript");
@@ -53,6 +51,12 @@ public final class Main extends JavaPlugin {
         if ("1.2.1" == getDescription().getVersion() &&  (state ==  PluginUpdater.UpdateState.LOWER)) {
             getLogger().warning("In newest WebSK version, file config.yml is changed!");
             getLogger().warning("Please remove your current config.yml, and restart server - new file will be created automatically!");
+        }
+
+        int version = Integer.parseInt(getServer().getVersion().split("\\.")[1]);
+        if (version >= 19 || version <= 15) {
+            getLogger().warning("Sadly WebSK doesn't fully support your minecraft version!");
+            getLogger().warning("If you find any bugs, please contact us on discord");
         }
         
         // This creates config.yml and all other websk folders
