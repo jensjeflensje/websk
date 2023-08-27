@@ -2,13 +2,16 @@ package dev.jensderuiter.websk.utils;
 
 import ch.njol.skript.ScriptLoader;
 import ch.njol.skript.Skript;
+import ch.njol.skript.classes.ClassInfo;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.SkriptParser;
 import ch.njol.skript.lang.SyntaxElement;
 import ch.njol.skript.lang.SyntaxElementInfo;
+import ch.njol.skript.lang.parser.ParserInstance;
 import ch.njol.skript.lang.util.SimpleLiteral;
 import ch.njol.skript.log.ParseLogHandler;
 import ch.njol.skript.log.SkriptLogger;
+import ch.njol.skript.registrations.Classes;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.NonNullPair;
 import ch.njol.util.StringUtils;
@@ -33,7 +36,13 @@ public final class SkriptUtils {
             String expr,
             @Nullable String defaultError,
             Event event) {
-        return parseExpression(expr, Skript.getExpressions(), defaultError, event);
+
+        ParserInstance.get().setCurrentEvent("dummy", event.getClass());
+        return (Expression<?>) SkriptParser.parse(expr, getExpressions(), defaultError);
+    }
+
+    private static Iterator getExpressions() {
+        return Skript.getExpressions();
     }
 
     /**
@@ -68,14 +77,21 @@ public final class SkriptUtils {
                     try {
                         content = StringUtils.join(((Map<?, ?>) value).values(), ", ");
                     } catch (ClassCastException ex) {
-                        content = value.toString();
+                        // Use the toString of Skript (using classes)
+                        final ClassInfo classInfo = Classes.getExactClassInfo(value.getClass());
+                        if (classInfo == null || classInfo.getParser() == null) // not registered, use the toString
+                            content = value.toString();
+                        else
+                            content = classInfo.getParser().toString(value, 0);
                     } catch (NullPointerException ex) {
+
                     }
                     if (content.equalsIgnoreCase(varMatcher.group(0)))
                         content = escapeHtml(Main.getInstance().getConfig().getString("default-value"));
                     mainContent = content;
                     expr = replaceGroup(varPattern.toString(),
                             expr, 0, content);
+                    System.out.println(content);
                 }
 
                 if (onlyVariable)
