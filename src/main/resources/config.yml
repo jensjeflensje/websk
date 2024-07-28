@@ -3,6 +3,21 @@
 # In this file you enable and disable WebSK's functions!
 #
 
-# Using this, you can open web files, with connecting to <yourpage>/files/<file>;
-# It is useful when writing Html Web Page, with a lot of files (images, css, and others!)
-instant-open-files: true
+#
+# Using this, you can host all your static files. To open file got to <yourpage>/files/<file>;
+# It is useful when writing HTML web page, with a lot of static files (images, css, and others!)
+#
+enable-static-server: true
+static-server-path: plugins/WebSK/files/
+
+# Select which files are excluded from static server
+protected-files: 
+  - secret.html
+
+#
+# WebSK Template System
+#
+
+# Automaticly replace %nl% with <br>
+show-newlines: true
+default-value: <none>

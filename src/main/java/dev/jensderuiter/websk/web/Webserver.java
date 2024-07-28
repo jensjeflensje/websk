@@ -52,22 +52,27 @@ public class Webserver extends Thread {
         }
         
         // Check if this feature is enabled in config
-        Boolean instantopenfiles = Main.getInstance().getConfig().getBoolean("instant-open-files");
-        if (instantopenfiles == true) {
+        if (Main.getInstance().getConfig().getBoolean("enable-static-server")) {
             // Instant open files from Skript/templates/
             innerServer.createContext("/files/", httpExchange -> {
                 Bukkit.getScheduler().runTask(Main.getPlugin(Main.class), () -> {
                     String responseString = "";
-                    String fileName = httpExchange.getRequestURI().toString();
-                    fileName =  fileName.replaceFirst("/files/", "");
-                    String path = "plugins/WebSK/files/" + fileName;
-                    if (!Files.exists(Paths.get(path))) {
-                        Skript.warning("[WebSK] File '" + path + "' doesn't exist!");
+                    String fileName = httpExchange.getRequestURI().toString().replaceFirst("/files/", "");
+                    String path = Main.getInstance().getConfig().getString("static-server-path") + fileName;
+                    List<String> protectedFiles = Main.getInstance().getConfig().getStringList("protected-files");
+                    if ( protectedFiles.contains(fileName) || !Files.exists(Paths.get(path))) {
+                        if (!Files.exists(Paths.get(path))) Skript.warning("[WebSK] File '" + path + "' doesn't exist!");
+                        try {
+                            httpExchange.sendResponseHeaders(404, 0);
+                            OutputStream out = httpExchange.getResponseBody();
+                            out.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         return;
                     }
                     
                     File file = new File(path);
-                    
                     try {
                         httpExchange.sendResponseHeaders(200, file.length());
                         OutputStream out = httpExchange.getResponseBody();
@@ -130,6 +135,7 @@ public class Webserver extends Thread {
                 Headers respHeaders = httpExchange.getResponseHeaders();
                 respHeaders.clear();
                 List<String> cookieValues = RequestData.futureCookies.get(request.id);
+                respHeaders.add( "Content-Type", "text/html; charset=utf-8" ); // Use UTF-8 by default
                 if (cookieValues != null) {
                     respHeaders.put("Set-Cookie", cookieValues);
                 }
